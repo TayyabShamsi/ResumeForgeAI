@@ -32,10 +32,23 @@ Provide your analysis in the following JSON format (respond ONLY with valid JSON
       "before": "<weak version>",
       "after": "<improved version>"
     }
-  ]
+  ],
+  "atsIssues": [
+    {
+      "type": "formatting" | "keywords" | "structure" | "content",
+      "severity": "high" | "medium" | "low",
+      "issue": "<specific problem>",
+      "fix": "<how to fix it>"
+    }
+  ],
+  "keywordDensity": {
+    "total": <number>,
+    "matched": <number>,
+    "percentage": <number>
+  }
 }
 
-Be brutally honest but constructive. Include at least 4-6 roasts (mix of criticisms and strengths), 5-7 missing keywords, and 2-3 before/after examples.`;
+Be brutally honest but constructive. Include at least 4-6 roasts (mix of criticisms and strengths), 5-7 missing keywords, 2-3 before/after examples, and 3-5 ATS-specific issues with fixes.`;
 
   const result = await ai.models.generateContent({
     model: "gemini-2.0-flash-exp",

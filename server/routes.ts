@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import multer from "multer";
 import mammoth from "mammoth";
 import rateLimit from "express-rate-limit";
+import crypto from "crypto";
 import { 
   analyzeResume, 
   generateInterviewQuestions, 
@@ -25,6 +26,47 @@ const apiLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
+
+// Simple in-memory cache with 5-minute TTL
+interface CacheEntry {
+  data: any;
+  timestamp: number;
+}
+
+const responseCache = new Map<string, CacheEntry>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+// Create a hash from string for cache key
+function createHash(text: string): string {
+  return crypto.createHash('sha256').update(text).digest('hex');
+}
+
+function getCached(key: string): any | null {
+  const entry = responseCache.get(key);
+  if (!entry) return null;
+  
+  if (Date.now() - entry.timestamp > CACHE_TTL) {
+    responseCache.delete(key);
+    return null;
+  }
+  
+  return entry.data;
+}
+
+function setCache(key: string, data: any): void {
+  responseCache.set(key, { data, timestamp: Date.now() });
+}
+
+// Clean up expired cache entries every minute
+setInterval(() => {
+  const now = Date.now();
+  const entries = Array.from(responseCache.entries());
+  for (const [key, entry] of entries) {
+    if (now - entry.timestamp > CACHE_TTL) {
+      responseCache.delete(key);
+    }
+  }
+}, 60 * 1000);
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
@@ -66,16 +108,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Job description is required" });
       }
 
+      // Create unique cache key from full resume + job description using hash
+      const cacheKey = `resume:${createHash(resumeText + jobDescription)}`;
+      
+      // Check cache first
+      const cached = getCached(cacheKey);
+      if (cached) {
+        console.log("Returning cached resume analysis");
+        return res.json(cached);
+      }
+
       const analysis = await analyzeResume(resumeText, jobDescription);
       
       // Include the extracted resume text in the response
-      res.json({
+      const response = {
         ...analysis,
         resumeText // Send back the extracted text for frontend to cache
-      });
+      };
+      
+      // Cache the response
+      setCache(cacheKey, response);
+      
+      res.json(response);
     } catch (error: any) {
       console.error("Resume analysis error:", error);
-      res.status(500).json({ error: error.message || "Failed to analyze resume" });
+      
+      let errorMessage = "Failed to analyze resume. Please try again.";
+      let statusCode = 500;
+      
+      if (error.message?.includes("API key")) {
+        errorMessage = "AI service configuration error. Please contact support.";
+        statusCode = 503;
+      } else if (error.message?.includes("rate limit") || error.message?.includes("quota")) {
+        errorMessage = "AI service is temporarily unavailable. Please try again in a few minutes.";
+        statusCode = 429;
+      } else if (error.message?.includes("parse") || error.message?.includes("extract")) {
+        errorMessage = "Failed to parse resume file. Please ensure it's a valid PDF or DOCX.";
+        statusCode = 400;
+      }
+      
+      res.status(statusCode).json({ error: errorMessage });
     }
   });
 
@@ -93,7 +165,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(questions);
     } catch (error: any) {
       console.error("Question generation error:", error);
-      res.status(500).json({ error: error.message || "Failed to generate questions" });
+      
+      let errorMessage = "Failed to generate interview questions. Please try again.";
+      if (error.message?.includes("rate limit") || error.message?.includes("quota")) {
+        errorMessage = "AI service is temporarily busy. Please try again in a moment.";
+      }
+      
+      res.status(500).json({ error: errorMessage });
     }
   });
 
