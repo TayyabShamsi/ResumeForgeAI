@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
-import { LogIn, UserPlus, LogOut, User } from "lucide-react";
+import { LogIn, UserPlus, LogOut, User, Settings } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -108,6 +108,10 @@ export function AuthButtons() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => setLocation("/settings")} data-testid="menu-settings">
+          <Settings className="mr-2 h-4 w-4" />
+          <span>Settings</span>
+        </DropdownMenuItem>
         <DropdownMenuItem onClick={() => setLocation("/pricing")} data-testid="menu-pricing">
           <User className="mr-2 h-4 w-4" />
           <span>Pricing</span>

@@ -21,6 +21,9 @@ import {
   checkCoverLetterCredits 
 } from "./credit-middleware";
 import { authenticateSupabase } from "./auth-routes";
+import { db } from "./db";
+import { subscriptionHistory } from "../shared/schema";
+import { eq, desc } from "drizzle-orm";
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -111,6 +114,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         tier: dbUser.subscriptionTier || 'free',
         status: dbUser.subscriptionStatus || 'active',
+        stripeCustomerId: dbUser.stripeCustomerId || null,
+        currentPeriodEnd: dbUser.creditsResetDate || null,
         credits: {
           resume: credits.resume || 0,
           interview: credits.interview || 0,
@@ -122,6 +127,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error fetching subscription info:", error);
       res.status(500).json({ error: "Failed to fetch subscription info" });
+    }
+  });
+
+  // Get user subscription history endpoint
+  app.get("/api/subscription-history", authenticateSupabase, async (req, res) => {
+    try {
+      const user = (req as any).user;
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      // Fetch subscription history from database
+      const history = await db
+        .select({
+          id: subscriptionHistory.id,
+          userId: subscriptionHistory.userId,
+          previousTier: subscriptionHistory.fromTier,
+          newTier: subscriptionHistory.toTier,
+          changeType: subscriptionHistory.eventType,
+          changedAt: subscriptionHistory.timestamp,
+        })
+        .from(subscriptionHistory)
+        .where(eq(subscriptionHistory.userId, user.id))
+        .orderBy(desc(subscriptionHistory.timestamp))
+        .limit(20);
+      
+      res.json(history);
+    } catch (error: any) {
+      console.error("Error fetching subscription history:", error);
+      res.status(500).json({ error: "Failed to fetch subscription history" });
     }
   });
   
