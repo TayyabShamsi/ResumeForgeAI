@@ -5,6 +5,11 @@ import { setupVite, serveStatic, log } from "./vite";
 import cookieParser from "cookie-parser";
 
 const app = express();
+
+// Stripe webhook needs raw body for signature verification
+app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }));
+
+// All other routes use JSON parser
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());

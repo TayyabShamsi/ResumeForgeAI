@@ -13,6 +13,14 @@ import {
   chatWithAI,
   rewriteResume
 } from "./gemini";
+import { stripeRouter } from "./stripe-routes";
+import { 
+  checkResumeCredits, 
+  checkInterviewCredits, 
+  checkLinkedInCredits,
+  checkCoverLetterCredits 
+} from "./credit-middleware";
+import { authenticateSupabase } from "./auth-routes";
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -71,11 +79,19 @@ setInterval(() => {
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
-  // Apply rate limiting to all API routes
-  app.use("/api/", apiLimiter);
+  // Apply rate limiting to all API routes except Stripe webhook
+  app.use("/api/", (req, res, next) => {
+    if (req.path === '/stripe/webhook') {
+      return next(); // Skip rate limiting for webhooks
+    }
+    return apiLimiter(req, res, next);
+  });
+
+  // Register Stripe routes
+  app.use("/api/stripe", stripeRouter);
   
-  // Resume analysis endpoint
-  app.post("/api/analyze-resume", upload.single("resume"), async (req, res) => {
+  // Resume analysis endpoint (with credit check)
+  app.post("/api/analyze-resume", authenticateSupabase, checkResumeCredits, upload.single("resume"), async (req, res) => {
     try {
       let resumeText = "";
       const { jobDescription, resumeText: pastedText } = req.body;
@@ -193,8 +209,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Interview questions generation endpoint
-  app.post("/api/generate-questions", async (req, res) => {
+  // Interview questions generation endpoint (with credit check)
+  app.post("/api/generate-questions", authenticateSupabase, checkInterviewCredits, async (req, res) => {
     try {
       const { resumeText, jobDescription } = req.body;
 
@@ -217,8 +233,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // LinkedIn optimization endpoint
-  app.post("/api/optimize-linkedin", async (req, res) => {
+  // LinkedIn optimization endpoint (with credit check)
+  app.post("/api/optimize-linkedin", authenticateSupabase, checkLinkedInCredits, async (req, res) => {
     try {
       const { profileUrl, profileContent } = req.body;
 
@@ -282,8 +298,8 @@ Education: ${profile.education?.map((edu: any) =>
     }
   });
 
-  // Cover letter generation endpoint
-  app.post("/api/generate-cover-letter", async (req, res) => {
+  // Cover letter generation endpoint (with credit check)
+  app.post("/api/generate-cover-letter", authenticateSupabase, checkCoverLetterCredits, async (req, res) => {
     try {
       const { resumeText, jobTitle, companyName, jobDescription, tone } = req.body;
 
