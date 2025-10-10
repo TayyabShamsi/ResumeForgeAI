@@ -1,0 +1,70 @@
+Foundation & Core Features
+Give this first, let it build completely, test it, then move to Prompt 2
+Build a professional full-stack resume optimization web app called "ResumeForge AI" with these specs:
+
+TECH STACK:
+- Node.js + Express backend
+- React (Vite) frontend  
+- TailwindCSS for modern, clean UI design
+- Google Gemini 1.5 Flash API for AI processing
+- pdf-parse and mammoth for document parsing
+- Multer for file uploads
+
+CORE FEATURES TO BUILD:
+
+1. RESUME UPLOAD & ROASTER
+- Homepage with drag-and-drop resume upload (PDF/DOCX, max 5MB)
+- Parse uploaded resume and extract all text content
+- Display extracted text in a clean preview panel
+- Add input field for job description (optional but recommended)
+- "Roast My Resume" button triggers AI analysis
+- AI analyzes resume using Gemini API with this logic:
+  * Give brutally honest critique with humor
+  * Score resume 0-100 on overall quality
+  * Check ATS compatibility (will it pass applicant tracking systems?)
+  * Identify missing keywords for the target job
+  * Rewrite 2-3 weak sections with stronger, more impactful versions
+  * Provide before/after comparisons
+- Display results in an engaging dashboard:
+  * Animated score circle showing the rating
+  * List of roast points with fire emoji for criticisms, sparkle for strengths
+  * ATS pass/fail badge
+  * Keyword tag cloud for what's missing
+  * Side-by-side before/after section improvements
+  * "Generate Interview Questions" button at the bottom
+
+2. INTERVIEW QUESTION GENERATOR
+- Takes the analyzed resume + job description
+- Gemini generates 25 realistic interview questions:
+  * 10 behavioral (STAR method)
+  * 8 technical/role-specific
+  * 5 situational
+  * 2 curveball questions
+- For each question provide: the question, why they ask it, sample answer based on resume, key talking points
+- Display in categorized, expandable cards
+- Add show/hide toggle for sample answers
+- Include copy-to-clipboard for each answer
+- Add "Download as PDF" button for entire interview prep guide
+
+UI/UX REQUIREMENTS:
+- Modern, professional design with gradient accents (purple/blue theme)
+- Fully responsive for mobile and desktop
+- Loading states with smooth animations during AI processing
+- Error handling with friendly messages
+- Clean navigation between features
+- Use Tailwind utility classes throughout
+
+TECHNICAL REQUIREMENTS:
+- Store API keys in .env file (GEMINI_API_KEY)
+- Set up CORS properly
+- File upload with validation (type, size)
+- Proper error handling on all routes
+- Clean up uploaded files after processing
+
+IMPORTANT GEMINI PROMPT ENGINEERING:
+- Structure all Gemini prompts to return valid JSON
+- Use clear, specific instructions for consistent output format
+- Request actionable, specific feedback (not generic advice)
+- Make the roasting funny but constructive
+
+Build this as a complete, working MVP.
