@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { Sparkles, FileText, Target, CheckCircle, TrendingUp, Download, ArrowRight } from "lucide-react";
+import { Sparkles, FileText, Target, CheckCircle, TrendingUp, Download, ArrowRight, FileEdit, Copy, FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
 import { ScoreCircle } from "@/components/ScoreCircle";
 import { MetricCard } from "@/components/MetricCard";
 import { ATSBadge } from "@/components/ATSBadge";
@@ -11,6 +12,8 @@ import { KeywordCloud } from "@/components/KeywordCloud";
 import { BeforeAfterSection } from "@/components/BeforeAfterSection";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageTransition } from "@/components/PageTransition";
+import { useToast } from "@/hooks/use-toast";
+import jsPDF from "jspdf";
 import atsImage from "@assets/generated_images/ATS_compatibility_analysis_visualization_d3c39158.png";
 import keywordImage from "@assets/generated_images/Keyword_analysis_visualization_23ebf236.png";
 import improvementImage from "@assets/generated_images/Resume_improvement_visualization_3f91e291.png";
@@ -44,11 +47,24 @@ const mockData = {
   ]
 };
 
+interface RewriteData {
+  revisedResume: string;
+  keyChanges: string[];
+  wordCount: {
+    original: number;
+    revised: number;
+  };
+}
+
 export default function Results() {
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState("overview");
   const [analysisData, setAnalysisData] = useState<typeof mockData>(mockData);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isRewriting, setIsRewriting] = useState(false);
+  const [rewriteData, setRewriteData] = useState<RewriteData | null>(null);
+  const [editedResume, setEditedResume] = useState("");
+  const { toast } = useToast();
 
   useEffect(() => {
     const storedData = sessionStorage.getItem("resumeAnalysis");
@@ -97,6 +113,100 @@ export default function Results() {
 
   const handleDownloadReport = () => {
     console.log("Downloading PDF report");
+  };
+
+  const handleGenerateRewrite = async () => {
+    const resumeText = sessionStorage.getItem("resumeText") || "";
+    const jobDescription = sessionStorage.getItem("jobDescription") || "";
+
+    if (!resumeText) {
+      toast({
+        title: "Error",
+        description: "Resume text not found. Please upload a resume again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsRewriting(true);
+
+    try {
+      const response = await fetch("/api/resume/rewrite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          resumeText, 
+          jobDescription,
+          analysisResults: analysisData 
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setRewriteData(data);
+        setEditedResume(data.revisedResume);
+        toast({
+          title: "Resume Rewritten!",
+          description: "Your complete revised resume is ready below.",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: data.error || "Failed to rewrite resume.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Failed to rewrite resume:", error);
+      toast({
+        title: "Error",
+        description: "Couldn't generate revision right now. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRewriting(false);
+    }
+  };
+
+  const handleCopyResume = async () => {
+    try {
+      await navigator.clipboard.writeText(editedResume);
+      toast({
+        title: "Copied!",
+        description: "Revised resume copied to clipboard.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to copy to clipboard.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDownloadPDF = () => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 15;
+    const maxLineWidth = pageWidth - (margin * 2);
+    
+    const lines = doc.splitTextToSize(editedResume, maxLineWidth);
+    
+    doc.setFontSize(10);
+    doc.text(lines, margin, margin);
+    doc.save("revised-resume.pdf");
+
+    toast({
+      title: "Downloaded!",
+      description: "Your resume has been downloaded as PDF.",
+    });
+  };
+
+  const handleStartOver = () => {
+    setRewriteData(null);
+    setEditedResume("");
+    setLocation("/");
   };
 
   return (
@@ -248,6 +358,129 @@ export default function Results() {
               ))}
             </TabsContent>
           </Tabs>
+
+          {/* Resume Rewrite Section */}
+          {!rewriteData ? (
+            <Card className="relative overflow-hidden border-primary/30">
+              <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-accent/5" />
+              <div className="relative p-8 sm:p-12 text-center space-y-6">
+                <div className="flex justify-center">
+                  <div className="p-4 bg-primary/10 rounded-full">
+                    <FileEdit className="h-8 w-8 text-primary" />
+                  </div>
+                </div>
+                <div>
+                  <h2 className="text-3xl font-bold mb-3">Generate Complete Revised Resume</h2>
+                  <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                    Get a fully rewritten, ATS-optimized resume based on the feedback above. 
+                    Our AI will restructure and enhance your entire resume while keeping all your real achievements.
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    This is included in your analysis credit - no extra charge
+                  </p>
+                </div>
+                <Button
+                  onClick={handleGenerateRewrite}
+                  size="lg"
+                  className="shadow-lg shadow-primary/25"
+                  data-testid="button-generate-rewrite"
+                  disabled={isRewriting}
+                >
+                  <Sparkles className="mr-2 h-5 w-5" />
+                  {isRewriting ? "AI is rewriting your resume... this may take 30 seconds" : "Generate Complete Revised Resume"}
+                </Button>
+              </div>
+            </Card>
+          ) : (
+            <div className="space-y-6">
+              {/* Comparison View */}
+              <div className="grid lg:grid-cols-2 gap-6">
+                {/* Original Resume */}
+                <Card className="p-6 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xl font-semibold">Your Original Resume</h3>
+                    <span className="text-sm text-muted-foreground">
+                      {rewriteData.wordCount.original} words
+                    </span>
+                  </div>
+                  <Textarea
+                    value={sessionStorage.getItem("resumeText") || ""}
+                    readOnly
+                    className="min-h-[500px] font-mono text-sm bg-muted/50 text-muted-foreground resize-none"
+                    data-testid="textarea-original-resume"
+                  />
+                </Card>
+
+                {/* Revised Resume */}
+                <Card className="p-6 space-y-4 border-primary/50">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xl font-semibold text-primary">AI-Revised Resume</h3>
+                    <span className="text-sm text-primary">
+                      {rewriteData.wordCount.revised} words
+                      {rewriteData.wordCount.revised < rewriteData.wordCount.original && 
+                        " (more concise!)"}
+                    </span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    This version is optimized for ATS and impact. You can edit it below.
+                  </p>
+                  <Textarea
+                    value={editedResume}
+                    onChange={(e) => setEditedResume(e.target.value)}
+                    className="min-h-[500px] font-mono text-sm resize-none"
+                    data-testid="textarea-revised-resume"
+                  />
+                </Card>
+              </div>
+
+              {/* Key Changes */}
+              <Card className="p-6 space-y-4">
+                <h3 className="text-xl font-semibold flex items-center gap-2">
+                  <CheckCircle className="h-5 w-5 text-success" />
+                  Key Changes Made
+                </h3>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  {rewriteData.keyChanges.map((change, index) => (
+                    <div key={index} className="flex items-start gap-2">
+                      <CheckCircle className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
+                      <span className="text-sm">{change}</span>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap gap-4 justify-center">
+                <Button
+                  onClick={handleCopyResume}
+                  size="lg"
+                  variant="outline"
+                  data-testid="button-copy-resume"
+                >
+                  <Copy className="mr-2 h-4 w-4" />
+                  Copy Revised Resume
+                </Button>
+                <Button
+                  onClick={handleDownloadPDF}
+                  size="lg"
+                  variant="outline"
+                  data-testid="button-download-pdf"
+                >
+                  <FileDown className="mr-2 h-4 w-4" />
+                  Download as PDF
+                </Button>
+                <Button
+                  onClick={handleStartOver}
+                  size="lg"
+                  variant="outline"
+                  data-testid="button-start-over"
+                >
+                  <ArrowRight className="mr-2 h-4 w-4" />
+                  Start Over
+                </Button>
+              </div>
+            </div>
+          )}
 
           {/* CTA Card with Interview Prep Image */}
           <Card className="relative overflow-hidden">
