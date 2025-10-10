@@ -27,27 +27,34 @@ export function UploadZone({ onFileSelect, isLoading }: UploadZoneProps) {
     <div
       {...getRootProps()}
       className={cn(
-        "border-2 border-dashed rounded-2xl p-12 transition-all cursor-pointer",
-        "hover-elevate",
-        isDragActive && "border-primary bg-primary/5 scale-[1.02]",
-        !isDragActive && "border-border",
+        "border-2 border-dashed rounded-xl p-8 md:p-12 transition-all cursor-pointer",
+        isDragActive && "border-primary bg-primary/10 scale-[1.01]",
+        !isDragActive && "border-border hover:border-primary/40 hover:bg-accent/5",
         isLoading && "opacity-50 cursor-not-allowed"
       )}
       data-testid="upload-zone"
     >
       <input {...getInputProps()} data-testid="input-file-upload" />
-      <div className="flex flex-col items-center gap-4">
-        {isDragActive ? (
-          <FileText className="h-16 w-16 text-primary" />
-        ) : (
-          <CloudUpload className="h-16 w-16 text-muted-foreground" />
-        )}
-        <div className="text-center">
-          <p className="text-xl font-medium mb-2">
+      <div className="flex flex-col items-center gap-3 md:gap-4">
+        <div className={cn(
+          "p-3 md:p-4 rounded-full transition-all duration-300",
+          isDragActive ? "bg-primary/20" : "bg-primary/10"
+        )}>
+          {isDragActive ? (
+            <FileText className="h-10 w-10 md:h-12 md:w-12 text-primary" />
+          ) : (
+            <CloudUpload className="h-10 w-10 md:h-12 md:w-12 text-primary" />
+          )}
+        </div>
+        <div className="text-center space-y-1">
+          <p className="text-base md:text-lg font-semibold">
             {isDragActive ? "Drop your resume here" : "Drag & drop your resume"}
           </p>
-          <p className="text-sm text-muted-foreground">
-            PDF or DOCX, max 5MB
+          <p className="text-xs md:text-sm text-muted-foreground">
+            or click to browse
+          </p>
+          <p className="text-xs text-muted-foreground">
+            PDF or DOCX • Max 5MB
           </p>
         </div>
       </div>
