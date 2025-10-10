@@ -12,9 +12,9 @@
 - **Primary**: 262 83% 58% (vibrant purple)
 - **Primary Hover**: 262 83% 65%
 - **Secondary**: 217 91% 60% (electric blue)
-- **Success**: 142 71% 45% (ATS pass green)
-- **Destructive**: 0 84% 60% (roast/fail red)
-- **Warning**: 38 92% 50% (attention yellow)
+- **Success**: 190 90% 55% (cyan - ATS pass, success states)
+- **Destructive**: 0 84% 60% (coral red - roast/fail)
+- **Warning**: 38 92% 55% (amber - attention states)
 - **Text Primary**: 0 0% 98%
 - **Text Secondary**: 0 0% 71%
 - **Text Muted**: 0 0% 55%
@@ -24,8 +24,11 @@
 - **Background**: 0 0% 100%
 - **Surface**: 0 0% 98%
 - **Surface Elevated**: 0 0% 100%
-- **Primary**: 262 83% 58%
-- **Secondary**: 217 91% 60%
+- **Primary**: 262 83% 58% (vibrant purple)
+- **Secondary**: 217 91% 60% (electric blue)
+- **Success**: 190 90% 50% (cyan - ATS pass, success states)
+- **Destructive**: 0 84% 60% (coral red - roast/fail)
+- **Warning**: 38 92% 50% (amber - attention states)
 - **Text Primary**: 222 47% 11%
 - **Text Secondary**: 222 20% 35%
 - **Border**: 0 0% 89%
