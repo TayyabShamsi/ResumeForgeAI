@@ -1,6 +1,8 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { PageTransition } from "@/components/PageTransition";
+import { PaywallModal } from "@/components/PaywallModal";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,7 +17,17 @@ export default function LinkedInProfile() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [optimizationData, setOptimizationData] = useState<any>(null);
+  const [showPaywall, setShowPaywall] = useState(false);
   const { toast } = useToast();
+
+  // Fetch subscription info for paywall modal
+  const { data: subscriptionInfo } = useQuery<{
+    tier: string;
+    credits: { resume: number; interview: number; linkedin: number; coverLetter: number };
+  }>({
+    queryKey: ["/api/subscription-info"],
+    enabled: showPaywall,
+  });
 
   const handleAnalyze = async () => {
     if (!profileUrl.trim() && !profileText.trim()) {
@@ -42,6 +54,12 @@ export default function LinkedInProfile() {
       const data = await response.json();
 
       if (!response.ok) {
+        // Check if error is due to credit limit
+        if (data.error?.includes("credit") || data.error?.includes("limit") || response.status === 403) {
+          setIsAnalyzing(false);
+          setShowPaywall(true);
+          return;
+        }
         throw new Error(data.error || "Failed to optimize profile");
       }
 
@@ -317,6 +335,17 @@ export default function LinkedInProfile() {
           )}
         </div>
       </div>
+
+      {/* Paywall Modal */}
+      {subscriptionInfo && (
+        <PaywallModal
+          isOpen={showPaywall}
+          onClose={() => setShowPaywall(false)}
+          featureName="LinkedIn Profile Optimization"
+          currentTier={subscriptionInfo.tier}
+          creditsRemaining={subscriptionInfo.credits.linkedin}
+        />
+      )}
     </PageTransition>
   );
 }

@@ -6,6 +6,9 @@ import cookieParser from "cookie-parser";
 
 const app = express();
 
+// Trust proxy for rate limiting (Replit runs behind a proxy)
+app.set('trust proxy', true);
+
 // Stripe webhook needs raw body for signature verification
 app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }));
 

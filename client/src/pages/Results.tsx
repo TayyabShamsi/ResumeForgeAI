@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { Sparkles, FileText, Target, CheckCircle, TrendingUp, Download, ArrowRight, FileEdit, Copy, FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -12,6 +13,7 @@ import { KeywordCloud } from "@/components/KeywordCloud";
 import { BeforeAfterSection } from "@/components/BeforeAfterSection";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageTransition } from "@/components/PageTransition";
+import { PaywallModal } from "@/components/PaywallModal";
 import { useToast } from "@/hooks/use-toast";
 import jsPDF from "jspdf";
 import atsImage from "@assets/generated_images/ATS_compatibility_analysis_visualization_d3c39158.png";
@@ -64,7 +66,17 @@ export default function Results() {
   const [isRewriting, setIsRewriting] = useState(false);
   const [rewriteData, setRewriteData] = useState<RewriteData | null>(null);
   const [editedResume, setEditedResume] = useState("");
+  const [showPaywall, setShowPaywall] = useState(false);
   const { toast } = useToast();
+
+  // Fetch subscription info for paywall modal
+  const { data: subscriptionInfo } = useQuery<{
+    tier: string;
+    credits: { resume: number; interview: number; linkedin: number; coverLetter: number };
+  }>({
+    queryKey: ["/api/subscription-info"],
+    enabled: showPaywall,
+  });
 
   useEffect(() => {
     const storedData = sessionStorage.getItem("resumeAnalysis");
@@ -98,14 +110,25 @@ export default function Results() {
 
       const data = await response.json();
 
-      if (response.ok) {
-        sessionStorage.setItem("interviewQuestions", JSON.stringify(data));
+      if (!response.ok) {
+        // Check if error is due to credit limit
+        if (data.error?.includes("credit") || data.error?.includes("limit") || response.status === 403) {
+          setIsGenerating(false);
+          setShowPaywall(true);
+          return;
+        }
+        throw new Error(data.error || "Failed to generate questions");
       }
 
+      sessionStorage.setItem("interviewQuestions", JSON.stringify(data));
       setLocation("/interview-prep");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to generate questions:", error);
-      setLocation("/interview-prep");
+      toast({
+        title: "Generation failed",
+        description: error.message || "Failed to generate questions. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsGenerating(false);
     }
@@ -606,6 +629,17 @@ export default function Results() {
           </Card>
         </div>
       </div>
+
+      {/* Paywall Modal */}
+      {subscriptionInfo && (
+        <PaywallModal
+          isOpen={showPaywall}
+          onClose={() => setShowPaywall(false)}
+          featureName="Interview Questions"
+          currentTier={subscriptionInfo.tier}
+          creditsRemaining={subscriptionInfo.credits.interview}
+        />
+      )}
     </PageTransition>
   );
 }

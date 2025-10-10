@@ -1,6 +1,8 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { PageTransition } from "@/components/PageTransition";
+import { PaywallModal } from "@/components/PaywallModal";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,7 +18,17 @@ export default function CoverLetter() {
   const [tone, setTone] = useState("professional");
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedLetter, setGeneratedLetter] = useState("");
+  const [showPaywall, setShowPaywall] = useState(false);
   const { toast } = useToast();
+
+  // Fetch subscription info for paywall modal
+  const { data: subscriptionInfo } = useQuery<{
+    tier: string;
+    credits: { resume: number; interview: number; linkedin: number; coverLetter: number };
+  }>({
+    queryKey: ["/api/subscription-info"],
+    enabled: showPaywall,
+  });
 
   const handleGenerate = async () => {
     if (!jobTitle.trim() || !companyName.trim()) {
@@ -48,6 +60,12 @@ export default function CoverLetter() {
       const data = await response.json();
 
       if (!response.ok) {
+        // Check if error is due to credit limit
+        if (data.error?.includes("credit") || data.error?.includes("limit") || response.status === 403) {
+          setIsGenerating(false);
+          setShowPaywall(true);
+          return;
+        }
         throw new Error(data.error || "Failed to generate cover letter");
       }
 
@@ -319,6 +337,17 @@ Best regards,
           </Card>
         </div>
       </div>
+
+      {/* Paywall Modal */}
+      {subscriptionInfo && (
+        <PaywallModal
+          isOpen={showPaywall}
+          onClose={() => setShowPaywall(false)}
+          featureName="Cover Letter Generation"
+          currentTier={subscriptionInfo.tier}
+          creditsRemaining={subscriptionInfo.credits.coverLetter}
+        />
+      )}
     </PageTransition>
   );
 }

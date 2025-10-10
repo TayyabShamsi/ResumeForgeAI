@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { Sparkles, FileText, Zap, Target, CheckCircle2, ArrowRight, Upload } from "lucide-react";
 import { UploadZone } from "@/components/UploadZone";
 import { Button } from "@/components/ui/button";
@@ -7,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { PageTransition } from "@/components/PageTransition";
+import { PaywallModal } from "@/components/PaywallModal";
 import { useToast } from "@/hooks/use-toast";
 import heroImage from "@assets/generated_images/AI_resume_analysis_visualization_1daaff06.png";
 
@@ -19,9 +21,19 @@ export default function Home() {
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [loadingMessage, setLoadingMessage] = useState("");
   const [showPasteOption, setShowPasteOption] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
   const { toast } = useToast();
 
   const MAX_RESUME_LENGTH = 10000;
+
+  // Fetch subscription info for paywall modal
+  const { data: subscriptionInfo } = useQuery<{
+    tier: string;
+    credits: { resume: number; interview: number; linkedin: number; coverLetter: number };
+  }>({
+    queryKey: ["/api/subscription-info"],
+    enabled: showPaywall,
+  });
 
   const handleRoast = async () => {
     if (!resumeFile && !resumeText.trim()) return;
@@ -72,6 +84,13 @@ export default function Home() {
       const data = await response.json();
 
       if (!response.ok) {
+        // Check if error is due to credit limit
+        if (data.error?.includes("credit") || data.error?.includes("limit") || response.status === 403) {
+          clearInterval(interval);
+          setIsLoading(false);
+          setShowPaywall(true);
+          return;
+        }
         throw new Error(data.error || "Failed to analyze resume");
       }
 
@@ -90,6 +109,7 @@ export default function Home() {
     } catch (error: any) {
       clearInterval(interval);
       setIsLoading(false);
+      
       toast({
         title: "Analysis failed",
         description: error.message || "Failed to analyze resume. Please try again.",
@@ -288,6 +308,17 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      {/* Paywall Modal */}
+      {subscriptionInfo && (
+        <PaywallModal
+          isOpen={showPaywall}
+          onClose={() => setShowPaywall(false)}
+          featureName="Resume Analysis"
+          currentTier={subscriptionInfo.tier}
+          creditsRemaining={subscriptionInfo.credits.resume}
+        />
+      )}
     </PageTransition>
   );
 }
