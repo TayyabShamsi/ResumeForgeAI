@@ -64,7 +64,7 @@ stripeRouter.post("/create-checkout-session", authenticateSupabase, async (req, 
         },
       ],
       success_url: `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${baseUrl}/pricing`,
+      cancel_url: `${baseUrl}/cancel`,
       metadata: {
         userId: user.id,
         tier: tier,

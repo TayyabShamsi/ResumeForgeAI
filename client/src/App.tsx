@@ -12,6 +12,8 @@ import LinkedInProfile from "@/pages/LinkedIn";
 import CoverLetter from "@/pages/CoverLetter";
 import Pricing from "@/pages/Pricing";
 import Settings from "@/pages/Settings";
+import Success from "@/pages/Success";
+import Cancel from "@/pages/Cancel";
 import Login from "@/pages/Login";
 import Signup from "@/pages/Signup";
 import NotFound from "@/pages/not-found";
@@ -26,6 +28,8 @@ function Router() {
       <Route path="/cover-letter" component={CoverLetter} />
       <Route path="/pricing" component={Pricing} />
       <Route path="/settings" component={Settings} />
+      <Route path="/success" component={Success} />
+      <Route path="/cancel" component={Cancel} />
       <Route path="/login" component={Login} />
       <Route path="/signup" component={Signup} />
       <Route component={NotFound} />
