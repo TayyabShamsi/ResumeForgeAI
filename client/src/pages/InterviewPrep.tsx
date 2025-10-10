@@ -6,6 +6,7 @@ import { InterviewQuestion } from "@/components/InterviewQuestion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { PageTransition } from "@/components/PageTransition";
+import { AIChatBot } from "@/components/AIChatBot";
 
 //todo: remove mock functionality
 const mockQuestions = {
@@ -223,6 +224,7 @@ export default function InterviewPrep() {
         </Tabs>
         </div>
       </div>
+      <AIChatBot />
     </PageTransition>
   );
 }

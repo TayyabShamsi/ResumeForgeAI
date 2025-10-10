@@ -19,7 +19,7 @@ export function AIChatBot() {
     {
       id: "1",
       role: "assistant",
-      content: "Hi! I'm your AI resume assistant. I can help you with:\n\n• Resume writing tips\n• ATS optimization advice\n• Interview preparation\n• Career guidance\n\nWhat would you like help with?",
+      content: "Hi! I'm your **Interview Coach**. I can help you:\n\n• Master the STAR method\n• Handle tough questions (weakness, conflict, failure)\n• Build confidence and reduce nervousness\n• Prepare questions to ask interviewers\n• Navigate salary negotiations\n• Prepare for technical interviews\n\nWhat would you like to practice?",
       timestamp: new Date(),
     },
   ]);
@@ -64,19 +64,35 @@ export function AIChatBot() {
     //todo: remove mock functionality - replace with actual AI
     const lowerInput = userInput.toLowerCase();
     
-    if (lowerInput.includes("resume") || lowerInput.includes("cv")) {
-      return "Here are key tips for a strong resume:\n\n1. **Quantify achievements**: Use numbers and metrics (e.g., 'Increased sales by 40%')\n2. **Use action verbs**: Start bullets with strong verbs like 'Led', 'Developed', 'Optimized'\n3. **Tailor to the job**: Match keywords from the job description\n4. **Keep it concise**: 1 page for <10 years experience, 2 pages max\n5. **ATS-friendly format**: Avoid tables, images, and fancy formatting\n\nWould you like specific advice on any section?";
+    if (lowerInput.includes("star") || lowerInput.includes("method")) {
+      return "The **STAR Method** is perfect for behavioral questions:\n\n**S** - Situation: Set the context (2-3 sentences)\n**T** - Task: Explain what needed to be done\n**A** - Action: Describe YOUR specific actions\n**R** - Result: Share the outcome with metrics\n\n**Example:** 'When our app crashed during peak hours (S), I needed to restore service and prevent future issues (T). I quickly identified the database bottleneck, implemented caching, and set up monitoring (A). This reduced downtime by 90% and improved response time by 60% (R).'";
     }
     
-    if (lowerInput.includes("ats") || lowerInput.includes("tracking")) {
-      return "To optimize your resume for ATS (Applicant Tracking Systems):\n\n• Use standard section headings (Experience, Education, Skills)\n• Include relevant keywords from the job posting\n• Avoid headers/footers and text boxes\n• Use simple formatting (no tables or columns)\n• Save as .docx or PDF (check job posting preferences)\n• Spell out acronyms at least once\n\nUpload your resume to get a detailed ATS compatibility check!";
+    if (lowerInput.includes("nervous") || lowerInput.includes("anxiety") || lowerInput.includes("confident")) {
+      return "Nervousness is normal! Here's how to stay confident:\n\n**Before:**\n• Practice answers out loud 5-10 times\n• Research the company deeply\n• Prepare 2-3 stories for common questions\n• Get good sleep the night before\n\n**During:**\n• Take a breath before answering\n• It's okay to pause and think\n• Ask for clarification if needed\n• Remember: they want you to succeed!\n\nPractice with the questions above - familiarity builds confidence!";
     }
     
-    if (lowerInput.includes("interview") || lowerInput.includes("question")) {
-      return "Interview preparation tips:\n\n**Before the interview:**\n• Research the company thoroughly\n• Prepare STAR method examples\n• Practice common questions aloud\n• Prepare 3-5 questions to ask them\n\n**During the interview:**\n• Listen carefully before answering\n• Be specific with examples\n• Show enthusiasm for the role\n• Ask for clarification if needed\n\nUse our Interview Prep feature to practice with AI-generated questions based on your resume!";
+    if (lowerInput.includes("weakness") || lowerInput.includes("weaknesses")) {
+      return "For 'What's your weakness?' questions:\n\n**DO:**\n• Choose a real but manageable weakness\n• Show self-awareness\n• Explain steps you're taking to improve\n• Keep it professional\n\n**Example:** 'I tend to be overly detail-oriented, which sometimes slows me down. I've learned to set time limits for tasks and focus on 'good enough' for low-impact work while maintaining high standards for critical deliverables.'\n\n**DON'T:**\n• Say 'I'm a perfectionist' (cliché)\n• Mention critical job requirements\n• Leave it without showing improvement";
     }
     
-    return "I'd be happy to help! I can provide guidance on:\n\n• Resume writing and formatting\n• ATS optimization strategies\n• Interview preparation techniques\n• Career development advice\n\nCould you tell me more about what you'd like to focus on?";
+    if (lowerInput.includes("behavioral") || lowerInput.includes("situational")) {
+      return "For behavioral questions, use real examples:\n\n**Types to prepare:**\n• Leadership & teamwork\n• Conflict resolution\n• Failure & learning\n• Problem-solving\n• Time management\n\n**Pro tip:** Prepare 5-7 strong stories that can answer multiple questions. For example, one project story might demonstrate leadership, problem-solving, AND communication skills.\n\nLook through the questions above and identify which stories from your experience fit best!";
+    }
+    
+    if (lowerInput.includes("technical") || lowerInput.includes("coding")) {
+      return "For technical interviews:\n\n**Preparation:**\n• Review job description for key technologies\n• Practice explaining concepts simply\n• Prepare examples of your technical work\n• Be ready to discuss trade-offs\n\n**During the interview:**\n• Think out loud - show your process\n• Ask clarifying questions\n• Discuss different approaches\n• Mention scalability and edge cases\n\n**Example:** Don't just say 'I'd use Redis for caching.' Say 'I'd use Redis for caching because it's fast, supports TTL, and works well with our Node.js stack. For 10M+ users, I'd also consider CDN caching for static content.'";
+    }
+    
+    if (lowerInput.includes("question") && (lowerInput.includes("ask them") || lowerInput.includes("ask interviewer"))) {
+      return "Great questions to ask interviewers:\n\n**About the role:**\n• What does success look like in the first 90 days?\n• What are the biggest challenges for this position?\n• How does this role contribute to company goals?\n\n**About the team:**\n• How would you describe the team culture?\n• What's the team's biggest achievement recently?\n• How does the team handle disagreements?\n\n**About growth:**\n• What learning opportunities are available?\n• How do you support career development?\n\n**Avoid:** Salary/benefits (save for HR), questions answered on their website";
+    }
+    
+    if (lowerInput.includes("salary") || lowerInput.includes("negotiate")) {
+      return "Salary negotiation tips:\n\n**Research first:**\n• Use Glassdoor, Levels.fyi, Payscale\n• Consider location, experience, company size\n• Know your market value\n\n**During negotiation:**\n• Let them make the first offer\n• Give a range, not a single number\n• Consider total compensation (equity, bonus, benefits)\n• Practice your pitch out loud\n\n**Example:** 'Based on my research and experience, I'm looking for $X-Y range. I'm excited about this opportunity and confident I can deliver significant value to your team.'\n\n**Remember:** Everything is negotiable - salary, equity, vacation, remote work, start date, signing bonus!";
+    }
+    
+    return "I'm your **Interview Coach**! I can help with:\n\n• **STAR method** for behavioral questions\n• **Confidence tips** for managing nervousness\n• **Technical interview** strategies\n• **Questions to ask** interviewers\n• **Salary negotiation** tactics\n• **Common pitfalls** to avoid\n\nWhat specific aspect of interviewing would you like to work on?";
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -115,8 +131,8 @@ export function AIChatBot() {
               <Sparkles className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <h3 className="font-semibold">AI Resume Assistant</h3>
-              <p className="text-xs text-muted-foreground">Always here to help</p>
+              <h3 className="font-semibold">Interview Coach</h3>
+              <p className="text-xs text-muted-foreground">Your AI interview partner</p>
             </div>
           </div>
           <Button
@@ -191,7 +207,7 @@ export function AIChatBot() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyPress}
-              placeholder="Ask me anything about resumes or interviews..."
+              placeholder="Ask me about interview strategies..."
               className="min-h-[60px] max-h-[120px] resize-none"
               data-testid="textarea-chat-input"
             />

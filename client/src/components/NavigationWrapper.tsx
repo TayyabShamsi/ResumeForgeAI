@@ -1,7 +1,6 @@
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AppSidebar } from "@/components/AppSidebar";
 import { FloatingNav } from "@/components/FloatingNav";
-import { AIChatBot } from "@/components/AIChatBot";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 
 interface NavigationWrapperProps {
@@ -20,7 +19,6 @@ export function NavigationWrapper({ children, showSidebar = true }: NavigationWr
       <>
         {children}
         <FloatingNav />
-        <AIChatBot />
       </>
     );
   }
@@ -40,7 +38,6 @@ export function NavigationWrapper({ children, showSidebar = true }: NavigationWr
         </SidebarInset>
       </div>
       <FloatingNav />
-      <AIChatBot />
     </SidebarProvider>
   );
 }
