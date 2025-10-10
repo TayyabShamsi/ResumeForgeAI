@@ -60,19 +60,19 @@ export default function Results() {
     <PageTransition>
       <div className="min-h-screen bg-background pb-20 md:pb-0">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-3xl md:text-4xl font-bold">Resume Analysis</h1>
-              <p className="text-muted-foreground mt-1">Here's your brutally honest feedback</p>
+              <h1 className="text-2xl md:text-3xl font-bold">Resume Analysis</h1>
+              <p className="text-sm text-muted-foreground mt-1">Here's your brutally honest feedback</p>
             </div>
             <Button variant="outline" size="sm" onClick={handleDownloadReport} data-testid="button-download-report">
               <Download className="h-4 w-4 mr-2" />
-              Download
+              Download Report
             </Button>
           </div>
 
           {/* Score Dashboard */}
-        <div className="grid md:grid-cols-3 gap-8 items-start">
+          <div className="grid md:grid-cols-3 gap-6 md:gap-8 items-start">
           <div className="flex justify-center animate-in fade-in slide-in-from-bottom-4 duration-700">
             <ScoreCircle score={mockData.score} />
           </div>
@@ -94,14 +94,14 @@ export default function Results() {
           </div>
         </div>
 
-        {/* Tabbed Content */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 max-w-2xl mx-auto">
-            <TabsTrigger value="overview" data-testid="tab-overview">Overview</TabsTrigger>
-            <TabsTrigger value="roast" data-testid="tab-roast">Feedback</TabsTrigger>
-            <TabsTrigger value="keywords" data-testid="tab-keywords">Keywords</TabsTrigger>
-            <TabsTrigger value="improvements" data-testid="tab-improvements">Improvements</TabsTrigger>
-          </TabsList>
+          {/* Tabbed Content */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+            <TabsList className="grid w-full grid-cols-4 max-w-3xl mx-auto">
+              <TabsTrigger value="overview" data-testid="tab-overview">Overview</TabsTrigger>
+              <TabsTrigger value="roast" data-testid="tab-roast">Feedback</TabsTrigger>
+              <TabsTrigger value="keywords" data-testid="tab-keywords">Keywords</TabsTrigger>
+              <TabsTrigger value="improvements" data-testid="tab-improvements">Improve</TabsTrigger>
+            </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
             <Card className="p-6 hover-elevate transition-all">

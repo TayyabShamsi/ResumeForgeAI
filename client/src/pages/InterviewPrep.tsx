@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { Download, ArrowLeft, Filter } from "lucide-react";
+import { Download, ArrowLeft, Filter, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { InterviewQuestion } from "@/components/InterviewQuestion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { PageTransition } from "@/components/PageTransition";
 import { AIChatBot } from "@/components/AIChatBot";
+import interviewImage from "@assets/stock_images/business_interview_p_cdcac97a.jpg";
 
 //todo: remove mock functionality
 const mockQuestions = {
@@ -106,25 +107,41 @@ export default function InterviewPrep() {
   return (
     <PageTransition>
       <div className="min-h-screen bg-background pb-20 md:pb-0">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-          <div className="flex items-center justify-between">
-            <div className="space-y-2">
+        {/* Hero Banner */}
+        <div className="relative h-32 md:h-40 overflow-hidden border-b border-border">
+          <img 
+            src={interviewImage} 
+            alt="Interview preparation" 
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-background via-background/80 to-background/60" />
+          <div className="absolute inset-0 flex items-center">
+            <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
               <Button
                 variant="ghost"
                 onClick={() => setLocation("/results")}
                 data-testid="button-back"
-                className="hover-elevate -ml-3"
+                className="mb-2 -ml-3"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Results
               </Button>
-              <div>
-                <h1 className="text-3xl md:text-4xl font-bold">Interview Preparation</h1>
-                <p className="text-muted-foreground mt-1">
-                  {allQuestions.length} personalized questions based on your resume
-                </p>
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-6 w-6 text-primary" />
+                <h1 className="text-2xl md:text-3xl font-bold">Interview Preparation</h1>
               </div>
+              <p className="text-sm text-muted-foreground mt-1">
+                {allQuestions.length} AI-generated questions based on your resume
+              </p>
             </div>
+          </div>
+        </div>
+
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8 space-y-6 md:space-y-8">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              Practice these questions to ace your interview
+            </p>
             <Button variant="outline" size="sm" onClick={handleDownloadPDF} data-testid="button-download-pdf">
               <Download className="h-4 w-4 mr-2" />
               Download
@@ -132,35 +149,35 @@ export default function InterviewPrep() {
           </div>
 
           {/* Category Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {Object.entries(categoryStats).map(([category, count], index) => (
-            <Card
-              key={category}
-              className="p-4 hover-elevate cursor-pointer transition-all"
-              onClick={() => setActiveTab(category)}
-              style={{ animationDelay: `${index * 100}ms` }}
-            >
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground capitalize">{category}</p>
-                <p className="text-2xl font-bold font-mono">{count}</p>
-              </div>
-            </Card>
-          ))}
-        </div>
-
-        {/* Tabs for filtering */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <div className="flex items-center gap-2 mb-4">
-            <Filter className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium">Filter by category:</span>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+            {Object.entries(categoryStats).map(([category, count], index) => (
+              <Card
+                key={category}
+                className="p-3 md:p-4 hover-elevate cursor-pointer transition-all"
+                onClick={() => setActiveTab(category)}
+                style={{ animationDelay: `${index * 100}ms` }}
+              >
+                <div className="space-y-1">
+                  <p className="text-xs md:text-sm text-muted-foreground capitalize">{category}</p>
+                  <p className="text-xl md:text-2xl font-bold">{count}</p>
+                </div>
+              </Card>
+            ))}
           </div>
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="all" data-testid="tab-all">All ({allQuestions.length})</TabsTrigger>
-            <TabsTrigger value="behavioral" data-testid="tab-behavioral">Behavioral ({mockQuestions.behavioral.length})</TabsTrigger>
-            <TabsTrigger value="technical" data-testid="tab-technical">Technical ({mockQuestions.technical.length})</TabsTrigger>
-            <TabsTrigger value="situational" data-testid="tab-situational">Situational ({mockQuestions.situational.length})</TabsTrigger>
-            <TabsTrigger value="curveball" data-testid="tab-curveball">Curveball ({mockQuestions.curveball.length})</TabsTrigger>
-          </TabsList>
+
+          {/* Tabs for filtering */}
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <div className="flex items-center gap-2 mb-3 md:mb-4">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <span className="text-xs md:text-sm font-medium">Filter by category:</span>
+            </div>
+            <TabsList className="grid w-full grid-cols-5 h-auto">
+              <TabsTrigger value="all" data-testid="tab-all" className="text-xs md:text-sm">All</TabsTrigger>
+              <TabsTrigger value="behavioral" data-testid="tab-behavioral" className="text-xs md:text-sm">Behavioral</TabsTrigger>
+              <TabsTrigger value="technical" data-testid="tab-technical" className="text-xs md:text-sm">Technical</TabsTrigger>
+              <TabsTrigger value="situational" data-testid="tab-situational" className="text-xs md:text-sm">Situational</TabsTrigger>
+              <TabsTrigger value="curveball" data-testid="tab-curveball" className="text-xs md:text-sm">Curveball</TabsTrigger>
+            </TabsList>
 
           <TabsContent value="all" className="space-y-4 mt-6">
             {allQuestions.map((q, index) => (
