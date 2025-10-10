@@ -53,6 +53,13 @@ export function SubscriptionBadge() {
   const config = tierConfig[subscriptionInfo.tier as keyof typeof tierConfig] || tierConfig.free;
   const Icon = config.icon;
   const isFreeTier = subscriptionInfo.tier === "free";
+  const isPremium = subscriptionInfo.tier === "premium";
+
+  // Show resume credits as the primary indicator (most frequently used feature)
+  const resumeCredits = isPremium ? "∞" : subscriptionInfo.credits.resume;
+  
+  // Check if credits are low (less than 3 resume credits)
+  const isLowCredits = !isPremium && subscriptionInfo.credits.resume < 3;
 
   return (
     <Popover>
@@ -60,13 +67,24 @@ export function SubscriptionBadge() {
         <Button
           variant="ghost"
           size="sm"
-          className="gap-2 h-9"
+          className="gap-1 sm:gap-2 h-9"
           data-testid="button-subscription-badge"
         >
-          <Badge variant="outline" className={config.color}>
+          <Badge variant="outline" className={`${config.color} text-xs`}>
             <Icon className="w-3 h-3 mr-1" />
             {config.label}
           </Badge>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:gap-1">
+            <span className="text-[10px] sm:text-xs text-muted-foreground leading-none">
+              Resume
+            </span>
+            <span 
+              className={`text-xs sm:text-sm font-mono leading-none ${isLowCredits ? 'text-destructive font-semibold' : 'text-foreground'}`}
+              data-testid="text-credits"
+            >
+              {resumeCredits}
+            </span>
+          </div>
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-80" align="end">
