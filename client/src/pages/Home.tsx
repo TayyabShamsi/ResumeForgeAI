@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { PageTransition } from "@/components/PageTransition";
+import heroImage from "@assets/stock_images/professional_person__1f6a5b7f.jpg";
 
 export default function Home() {
   const [, setLocation] = useLocation();
@@ -73,40 +74,40 @@ export default function Home() {
 
       {/* Hero Section */}
       <div className="relative min-h-[calc(100vh-4rem)] flex items-center justify-center overflow-hidden">
-        {/* Animated Gradient Background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-background to-chart-2/20">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(124,58,237,0.1),transparent_50%)] animate-pulse" />
+        {/* Hero Image with Overlay */}
+        <div className="absolute inset-0">
+          <img 
+            src={heroImage} 
+            alt="Professional workspace" 
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-br from-background/95 via-background/90 to-primary/40 backdrop-blur-sm" />
         </div>
         
-        {/* Floating Elements */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-20 left-10 w-20 h-20 bg-primary/10 rounded-full blur-xl animate-pulse" />
-          <div className="absolute top-40 right-20 w-32 h-32 bg-chart-2/10 rounded-full blur-xl animate-pulse delay-300" />
-          <div className="absolute bottom-40 left-1/4 w-24 h-24 bg-chart-3/10 rounded-full blur-xl animate-pulse delay-700" />
-        </div>
-        
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 w-full">
-          <div className="text-center space-y-8 mb-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-sm font-medium text-primary mb-4">
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16 w-full">
+          <div className="text-center space-y-6 mb-8 md:mb-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/20 border border-primary/30 text-sm font-medium text-primary backdrop-blur-sm">
               <Sparkles className="h-4 w-4" />
-              Powered by AI
+              Powered by Google Gemini AI
             </div>
-            <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight">
               Get Your Resume{" "}
-              <span className="bg-gradient-to-r from-primary to-chart-2 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-primary via-chart-2 to-primary bg-clip-text text-transparent">
                 Roasted
               </span>
             </h1>
-            <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto">
-              AI-powered brutally honest feedback, ATS compatibility checks, and personalized interview prep to land your dream job
+            <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
+              AI-powered brutally honest feedback, ATS compatibility checks, and personalized interview prep
             </p>
           </div>
 
-          <div className="max-w-3xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
-            <UploadZone
-              onFileSelect={setResumeFile}
-              isLoading={isLoading}
-            />
+          <div className="max-w-3xl mx-auto space-y-4 md:space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
+            <Card className="p-1 bg-card/50 backdrop-blur-sm border-primary/20">
+              <UploadZone
+                onFileSelect={setResumeFile}
+                isLoading={isLoading}
+              />
+            </Card>
 
             {resumeFile && !isLoading && (
               <div className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-500">
