@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Home, FileText, MessageSquare, ChevronUp, Linkedin, FileEdit } from "lucide-react";
+import { Home, FileText, MessageSquare, ChevronUp, Linkedin, FileEdit, CreditCard } from "lucide-react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -10,6 +10,7 @@ const navItems = [
   { icon: MessageSquare, url: "/interview-prep", label: "Interview" },
   { icon: Linkedin, url: "/linkedin", label: "LinkedIn" },
   { icon: FileEdit, url: "/cover-letter", label: "Cover" },
+  { icon: CreditCard, url: "/pricing", label: "Pricing" },
 ];
 
 export function FloatingNav() {
@@ -32,7 +33,7 @@ export function FloatingNav() {
     <>
       {/* Bottom Navigation Bar - Mobile */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-background/98 backdrop-blur-lg border-t border-border safe-area-bottom">
-        <div className="grid grid-cols-5 p-1.5">
+        <div className="grid grid-cols-3 p-1.5">
           {navItems.map((item) => (
             <Button
               key={item.url}

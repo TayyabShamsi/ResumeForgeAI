@@ -10,6 +10,7 @@ import Results from "@/pages/Results";
 import InterviewPrep from "@/pages/InterviewPrep";
 import LinkedInProfile from "@/pages/LinkedIn";
 import CoverLetter from "@/pages/CoverLetter";
+import Pricing from "@/pages/Pricing";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -20,6 +21,7 @@ function Router() {
       <Route path="/interview-prep" component={InterviewPrep} />
       <Route path="/linkedin" component={LinkedInProfile} />
       <Route path="/cover-letter" component={CoverLetter} />
+      <Route path="/pricing" component={Pricing} />
       <Route component={NotFound} />
     </Switch>
   );

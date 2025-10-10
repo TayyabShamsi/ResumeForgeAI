@@ -1,4 +1,4 @@
-import { Home, FileText, MessageSquare, Sparkles, Linkedin, FileEdit } from "lucide-react";
+import { Home, FileText, MessageSquare, Sparkles, Linkedin, FileEdit, CreditCard } from "lucide-react";
 import { useLocation } from "wouter";
 import {
   Sidebar,
@@ -36,6 +36,11 @@ const menuItems = [
     title: "Cover Letter",
     url: "/cover-letter",
     icon: FileEdit,
+  },
+  {
+    title: "Pricing",
+    url: "/pricing",
+    icon: CreditCard,
   },
 ];
 
