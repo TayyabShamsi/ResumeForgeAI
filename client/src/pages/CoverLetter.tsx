@@ -19,15 +19,44 @@ export default function CoverLetter() {
   const handleGenerate = () => {
     setIsGenerating(true);
     setTimeout(() => {
-      setGeneratedLetter(`Dear Hiring Manager,
+      let greeting = "Dear Hiring Manager,";
+      let opening = "";
+      let body = "";
+      let closing = "";
+      
+      // Adjust content based on tone
+      switch(tone) {
+        case "enthusiastic":
+          opening = `I am thrilled to apply for the ${jobTitle || "position"} at ${companyName || "your company"}! With my proven track record in software development and genuine passion for creating innovative solutions, I am excited about the prospect of joining your team.`;
+          body = `Throughout my career, I have consistently delivered exceptional results while fostering collaborative team environments. My experience aligns perfectly with your requirements, and I am particularly excited about the opportunity to contribute to your company's mission. The work ${companyName || "your company"} is doing truly inspires me!`;
+          closing = `I would be absolutely delighted to discuss how my background and enthusiasm can contribute to your team's success. Thank you so much for considering my application. I'm eager to connect and explore this exciting opportunity further!`;
+          break;
+        case "formal":
+          greeting = `Dear Hiring Manager,`;
+          opening = `I am writing to formally apply for the ${jobTitle || "position"} at ${companyName || "your company"}. My professional background and technical expertise make me a well-qualified candidate for this role.`;
+          body = `Throughout my professional tenure, I have demonstrated consistent excellence in software development and project delivery. My technical proficiency and leadership capabilities align precisely with the requirements specified in the position description. I have particular expertise in modern web technologies and scalable architecture design.`;
+          closing = `I respectfully request the opportunity to discuss my qualifications in greater detail. Thank you for your consideration of my application. I await your response.`;
+          break;
+        case "creative":
+          opening = `Imagine a software engineer who doesn't just write code, but crafts digital experiences. That's exactly what I bring to the ${jobTitle || "position"} at ${companyName || "your company"}.`;
+          body = `My journey in tech has been about more than building applications—it's been about solving puzzles, breaking barriers, and creating solutions that matter. The innovative work at ${companyName || "your company"} resonates with my approach to development: think outside the box, build with purpose, and never stop learning.`;
+          closing = `Let's create something amazing together. I'd love to share how my unique perspective and technical skills can contribute to ${companyName || "your company"}'s continued innovation. Looking forward to our conversation!`;
+          break;
+        default: // professional
+          opening = `I am writing to express my strong interest in the ${jobTitle || "position"} at ${companyName || "your company"}. With my proven track record in software development and passion for creating innovative solutions, I am confident I would be a valuable addition to your team.`;
+          body = `Throughout my career, I have consistently demonstrated my ability to deliver high-quality results while collaborating effectively with cross-functional teams. My experience aligns well with the requirements outlined in your job description, particularly in areas of technical leadership, problem-solving, and driving product innovation.`;
+          closing = `I am eager to discuss how my background, skills, and experience can contribute to the continued success of your team. Thank you for considering my application. I look forward to the opportunity to speak with you further.`;
+      }
+      
+      setGeneratedLetter(`${greeting}
 
-I am writing to express my strong interest in the ${jobTitle || "position"} at ${companyName || "your company"}. With my proven track record in software development and passion for creating innovative solutions, I am confident I would be a valuable addition to your team.
+${opening}
 
-Throughout my career, I have consistently demonstrated my ability to deliver high-quality results while collaborating effectively with cross-functional teams. My experience aligns perfectly with the requirements outlined in your job description, particularly in areas of technical leadership, problem-solving, and driving product innovation.
+${body}
 
-What excites me most about this opportunity at ${companyName || "your company"} is the chance to contribute to meaningful projects that impact users at scale. I am particularly impressed by your company's commitment to innovation and would be thrilled to bring my skills in React, Node.js, and cloud architecture to support your goals.
+What particularly excites me about this opportunity at ${companyName || "your company"} is the chance to contribute to meaningful projects that impact users at scale. I would be thrilled to bring my skills in React, Node.js, and cloud architecture to support your goals.
 
-I am eager to discuss how my background, skills, and enthusiasm can contribute to the continued success of your team. Thank you for considering my application. I look forward to the opportunity to speak with you further.
+${closing}
 
 Best regards,
 [Your Name]`);

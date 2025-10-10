@@ -32,7 +32,7 @@ export default function LinkedInProfile() {
     {
       section: "About Section",
       current: "I'm a software engineer with experience in web development...",
-      optimized: "🚀 Transforming ideas into scalable web applications\n\n5+ years building products that impact millions of users. Specialized in React, Node.js, and cloud architecture. Led development of features that increased user engagement by 45%.\n\n💡 Passionate about clean code, performance optimization, and mentoring junior developers.",
+      optimized: "Transforming ideas into scalable web applications\n\n5+ years building products that impact millions of users. Specialized in React, Node.js, and cloud architecture. Led development of features that increased user engagement by 45%.\n\nPassionate about clean code, performance optimization, and mentoring junior developers.",
       impact: "Higher engagement rate"
     },
     {
@@ -219,13 +219,19 @@ export default function LinkedInProfile() {
                     </div>
                     <div className="grid md:grid-cols-2 gap-6">
                       <div>
-                        <p className="text-sm font-semibold text-destructive mb-2">❌ Current</p>
+                        <p className="text-sm font-semibold text-destructive mb-2 flex items-center gap-1">
+                          <span className="w-4 h-4 rounded-full bg-destructive/20 flex items-center justify-center text-destructive text-xs">×</span>
+                          Current
+                        </p>
                         <div className="p-4 rounded-lg bg-destructive/5 border border-destructive/20">
                           <p className="text-sm whitespace-pre-line">{tip.current}</p>
                         </div>
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-success mb-2">✓ Optimized</p>
+                        <p className="text-sm font-semibold text-success mb-2 flex items-center gap-1">
+                          <CheckCircle className="w-4 h-4 text-success" />
+                          Optimized
+                        </p>
                         <div className="p-4 rounded-lg bg-success/5 border border-success/20">
                           <p className="text-sm whitespace-pre-line">{tip.optimized}</p>
                         </div>
