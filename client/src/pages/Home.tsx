@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { PageTransition } from "@/components/PageTransition";
-import heroImage from "@assets/stock_images/professional_workspa_a232dcee.jpg";
+import heroImage from "@assets/generated_images/AI_resume_analysis_visualization_1daaff06.png";
 
 export default function Home() {
   const [, setLocation] = useLocation();
@@ -79,15 +79,15 @@ export default function Home() {
     <PageTransition>
       <div className="min-h-screen bg-background">
         {/* Hero Section */}
-        <div className="relative min-h-[90vh] flex items-center">
+        <div className="relative min-h-[85vh] flex items-center overflow-hidden">
           {/* Background Image with Gradient Overlay */}
-          <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute inset-0">
             <img 
               src={heroImage} 
-              alt="Professional workspace" 
-              className="w-full h-full object-cover"
+              alt="AI Resume Analysis" 
+              className="w-full h-full object-cover opacity-40"
             />
-            <div className="absolute inset-0 bg-gradient-to-br from-background/98 via-background/95 to-primary/30" />
+            <div className="absolute inset-0 bg-gradient-to-br from-background via-background/95 to-primary/10" />
           </div>
           
           {/* Content */}
@@ -142,14 +142,14 @@ export default function Home() {
                 )}
 
                 {!showPasteOption ? (
-                  <Card className="p-1 bg-card/60 backdrop-blur-sm border-primary/20">
+                  <Card className="p-1 bg-card/80 backdrop-blur-sm border-primary/20">
                     <UploadZone
                       onFileSelect={setResumeFile}
                       isLoading={isLoading}
                     />
                   </Card>
                 ) : (
-                  <Card className="p-6 bg-card/60 backdrop-blur-sm border-primary/20">
+                  <Card className="p-6 bg-card/80 backdrop-blur-sm border-primary/20">
                     <Textarea
                       placeholder="Paste your resume text here..."
                       value={resumeText}
@@ -174,7 +174,7 @@ export default function Home() {
                 {(resumeFile || resumeText.trim()) && !isLoading && (
                   <div className="space-y-4">
                     {/* Job Description */}
-                    <Card className="p-6 bg-card/60 backdrop-blur-sm">
+                    <Card className="p-6 bg-card/80 backdrop-blur-sm">
                       <label className="text-sm font-semibold flex items-center gap-2 mb-3">
                         <Target className="h-4 w-4 text-primary" />
                         Job Description <span className="text-muted-foreground font-normal">(Optional)</span>
@@ -204,7 +204,7 @@ export default function Home() {
                 )}
 
                 {isLoading && (
-                  <Card className="p-6 space-y-4 bg-card/60 backdrop-blur-sm">
+                  <Card className="p-6 space-y-4 bg-card/80 backdrop-blur-sm">
                     <div className="flex items-center gap-3">
                       <div className="h-8 w-8 border-3 border-primary border-t-transparent rounded-full animate-spin" />
                       <div className="flex-1">
