@@ -9,12 +9,11 @@
 - **Background**: 222 47% 11% (deep charcoal)
 - **Surface**: 222 47% 15% (elevated panels)
 - **Surface Elevated**: 222 47% 18% (cards, modals)
-- **Primary**: 262 83% 58% (vibrant purple)
-- **Primary Hover**: 262 83% 65%
-- **Secondary**: 217 91% 60% (electric blue)
-- **Success**: 190 90% 55% (cyan - ATS pass, success states)
-- **Destructive**: 0 84% 60% (coral red - roast/fail)
-- **Warning**: 38 92% 55% (amber - attention states)
+- **Primary**: 150 75% 50% (emerald green - growth, success)
+- **Secondary**: 270 80% 60% (rich violet - creativity, premium)
+- **Success**: 45 90% 60% (gold - achievement, premium feel)
+- **Warning**: 30 92% 60% (tangerine - attention states)
+- **Destructive**: 355 85% 60% (crimson - roast/fail)
 - **Text Primary**: 0 0% 98%
 - **Text Secondary**: 0 0% 71%
 - **Text Muted**: 0 0% 55%
@@ -24,19 +23,19 @@
 - **Background**: 0 0% 100%
 - **Surface**: 0 0% 98%
 - **Surface Elevated**: 0 0% 100%
-- **Primary**: 262 83% 58% (vibrant purple)
-- **Secondary**: 217 91% 60% (electric blue)
-- **Success**: 190 90% 50% (cyan - ATS pass, success states)
-- **Destructive**: 0 84% 60% (coral red - roast/fail)
-- **Warning**: 38 92% 50% (amber - attention states)
+- **Primary**: 150 75% 50% (emerald green - growth, success)
+- **Secondary**: 270 80% 60% (rich violet - creativity, premium)
+- **Success**: 45 90% 55% (gold - achievement, premium feel)
+- **Warning**: 30 92% 58% (tangerine - attention states)
+- **Destructive**: 355 85% 58% (crimson - roast/fail)
 - **Text Primary**: 222 47% 11%
 - **Text Secondary**: 222 20% 35%
 - **Border**: 0 0% 89%
 
 ### Gradients
-- **Hero**: linear-gradient(135deg, primary → secondary)
-- **Card Accents**: subtle radial gradients from primary at 10% opacity
-- **Score Animations**: conic gradients for circular progress
+- **Hero**: linear-gradient(135deg, emerald → violet)
+- **Card Accents**: subtle radial gradients from emerald at 10% opacity
+- **Score Animations**: conic gradients for circular progress (gold for high scores)
 
 ## Typography
 - **Headings**: Inter (600-700 weight), tight leading (-0.02em tracking for large sizes)

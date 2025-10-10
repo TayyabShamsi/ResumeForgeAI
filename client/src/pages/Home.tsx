@@ -100,7 +100,7 @@ export default function Home() {
             </div>
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight">
               Get Your Resume{" "}
-              <span className="bg-gradient-to-r from-primary via-chart-2 to-primary bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-primary via-secondary to-primary bg-clip-text text-transparent">
                 Roasted
               </span>
             </h1>
