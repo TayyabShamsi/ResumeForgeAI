@@ -1,0 +1,117 @@
+Complete Resume Rewrite Feature
+Add a "Generate Complete Revised Resume" feature to the resume analysis page:
+
+=== NEW FEATURE REQUIREMENTS ===
+
+On the Resume Analysis Results page (after user uploads and gets the roast/feedback):
+
+ADD NEW BUTTON:
+- Below the current analysis results (score, roast points, ATS feedback, keyword suggestions)
+- Add prominent button: "Generate Complete Revised Resume"
+- Button style: primary/accent color, large and eye-catching
+- Icon: ✨ or 📝 next to text
+
+WHEN BUTTON CLICKED:
+1. Show loading state: "AI is rewriting your entire resume... this may take 30 seconds"
+2. Call backend endpoint: POST /api/resume/rewrite
+3. Send: original resume text + job description (if provided) + previous analysis results
+4. Backend calls Gemini API with this prompt:
+
+"You are an expert resume writer. Based on the analysis feedback provided, rewrite this ENTIRE resume from scratch to be significantly better.
+
+ORIGINAL RESUME:
+{original_resume_text}
+
+JOB DESCRIPTION (if provided):
+{job_description}
+
+ANALYSIS FEEDBACK:
+{previous_analysis_results}
+
+REQUIREMENTS FOR THE REWRITTEN RESUME:
+1. Keep all the user's actual experience, skills, and education - DO NOT invent anything
+2. Restructure for better flow and ATS compatibility
+3. Rewrite bullet points to be more impactful using strong action verbs
+4. Add quantifiable achievements where the original had vague descriptions
+5. Optimize keywords for the target job (if job description provided)
+6. Fix all formatting issues mentioned in the analysis
+7. Make it concise - remove fluff and redundancy
+8. Use professional language throughout
+9. Ensure proper sections: Contact Info, Professional Summary, Experience, Education, Skills
+10. Make each bullet point achievement-focused, not responsibility-focused
+
+Return the complete rewritten resume in clean, ATS-friendly plain text format. Use this structure:
+
+[NAME]
+[Contact Info]
+
+PROFESSIONAL SUMMARY
+[2-3 compelling sentences]
+
+PROFESSIONAL EXPERIENCE
+[Company] - [Title] | [Dates]
+• [Achievement-focused bullet]
+• [Achievement-focused bullet]
+...
+
+EDUCATION
+[Degree] - [School] | [Year]
+
+SKILLS
+[Organized skill categories]
+
+Format it ready to copy-paste into a document."
+
+5. Display the rewritten resume in the frontend
+
+FRONTEND DISPLAY:
+
+Create two-column comparison layout:
+- LEFT COLUMN: "Your Original Resume"
+  * Show original uploaded resume text in read-only textarea
+  * Grayed out/muted styling
+  
+- RIGHT COLUMN: "AI-Revised Resume" 
+  * Show completely rewritten resume in editable textarea
+  * User can make manual edits to the AI version
+  * Highlighted in color (green border or accent color)
+  * "This version is optimized for ATS and impact"
+
+BELOW THE COMPARISON:
+- Section showing "Key Changes Made":
+  * Bullet list of major improvements: "Quantified 8 achievements", "Optimized for 15 keywords", "Restructured experience section", etc.
+  * Use checkmarks ✓ for each improvement
+
+ACTION BUTTONS:
+- "Copy Revised Resume" button → copies AI version to clipboard, show toast: "Copied!"
+- "Download as PDF" button → generates PDF of revised resume
+- "Download as DOCX" button → generates DOCX file of revised resume
+- "Start Over" button → lets user upload new resume
+- "Make Further Edits" → keeps the editable textarea active for user customization
+
+KEEP EXISTING FEATURES:
+- User still sees the original analysis (score, roast, ATS feedback, specific suggestions)
+- The revised resume generation is an ADDITIONAL feature, not replacement
+- Both the "specific corrections" and "full rewrite" should be available
+
+CREDITS SYSTEM:
+- Free tier: Include this in the 5 resume analyses (1 analysis = roast + optional rewrite)
+- Don't charge separately for rewrite - it's part of the analysis
+- When user clicks "Generate Revised Resume", show quick note: "Using 1 analysis credit"
+
+OPTIONAL ENHANCEMENTS:
+- Add "Regenerate" button if user wants AI to try again with different style
+- Add tone selector: "Professional", "Creative", "Technical" - affects writing style
+- Show word count comparison: "Original: 847 words → Revised: 623 words (more concise!)"
+
+MOBILE RESPONSIVENESS:
+- On mobile, stack the columns vertically instead of side-by-side
+- Original resume collapsible accordion
+- Revised resume always visible
+
+ERROR HANDLING:
+- If Gemini API fails: "Couldn't generate revision right now. Please try again."
+- If resume is too short (< 100 words): "Resume seems incomplete. Please upload a full resume."
+- If resume is too long (> 3 pages): "Resume is quite long. Consider shortening before rewriting."
+
+Build this feature seamlessly into the existing resume analysis page. Make the comparison view intuitive and the revised resume immediately usable.

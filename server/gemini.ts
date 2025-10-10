@@ -212,3 +212,82 @@ Provide helpful, practical advice. Be supportive but honest. Keep responses conc
   
   return result.text || "";
 }
+
+export async function rewriteResume(
+  originalResumeText: string,
+  jobDescription: string,
+  analysisResults: any
+) {
+  const prompt = `You are an expert resume writer. Based on the analysis feedback provided, rewrite this ENTIRE resume from scratch to be significantly better.
+
+ORIGINAL RESUME:
+${originalResumeText}
+
+JOB DESCRIPTION (if provided):
+${jobDescription || 'Not provided - optimize for general professional excellence'}
+
+ANALYSIS FEEDBACK:
+${JSON.stringify(analysisResults, null, 2)}
+
+REQUIREMENTS FOR THE REWRITTEN RESUME:
+1. Keep all the user's actual experience, skills, and education - DO NOT invent anything
+2. Restructure for better flow and ATS compatibility
+3. Rewrite bullet points to be more impactful using strong action verbs
+4. Add quantifiable achievements where the original had vague descriptions
+5. Optimize keywords for the target job (if job description provided)
+6. Fix all formatting issues mentioned in the analysis
+7. Make it concise - remove fluff and redundancy
+8. Use professional language throughout
+9. Ensure proper sections: Contact Info, Professional Summary, Experience, Education, Skills
+10. Make each bullet point achievement-focused, not responsibility-focused
+
+Return your response in the following JSON format (respond ONLY with valid JSON, no markdown):
+{
+  "revisedResume": "<the complete rewritten resume in clean, ATS-friendly plain text format>",
+  "keyChanges": [
+    "<change 1: e.g., 'Quantified 8 achievements with metrics'>",
+    "<change 2: e.g., 'Optimized for 15 target keywords'>",
+    "<change 3: e.g., 'Restructured experience section for impact'>",
+    "<change 4>",
+    "<change 5>"
+  ],
+  "wordCount": {
+    "original": <number>,
+    "revised": <number>
+  }
+}
+
+Format the revisedResume text ready to copy-paste into a document. Use this structure:
+
+[NAME]
+[Contact Info]
+
+PROFESSIONAL SUMMARY
+[2-3 compelling sentences]
+
+PROFESSIONAL EXPERIENCE
+[Company] - [Title] | [Dates]
+• [Achievement-focused bullet]
+• [Achievement-focused bullet]
+...
+
+EDUCATION
+[Degree] - [School] | [Year]
+
+SKILLS
+[Organized skill categories]`;
+
+  const result = await ai.models.generateContent({
+    model: "gemini-2.0-flash-exp",
+    contents: prompt
+  });
+  
+  const responseText = result.text || "";
+  
+  const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    throw new Error("Invalid response format from AI");
+  }
+  
+  return JSON.parse(jsonMatch[0]);
+}

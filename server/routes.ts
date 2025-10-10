@@ -10,7 +10,8 @@ import {
   generateInterviewQuestions, 
   optimizeLinkedIn, 
   generateCoverLetter,
-  chatWithAI 
+  chatWithAI,
+  rewriteResume
 } from "./gemini";
 
 const upload = multer({
@@ -148,6 +149,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       res.status(statusCode).json({ error: errorMessage });
+    }
+  });
+
+  // Resume rewrite endpoint
+  app.post("/api/resume/rewrite", async (req, res) => {
+    try {
+      const { resumeText, jobDescription, analysisResults } = req.body;
+
+      if (!resumeText) {
+        return res.status(400).json({ error: "Resume text is required" });
+      }
+
+      // Validate resume length
+      if (resumeText.length < 100) {
+        return res.status(400).json({ 
+          error: "Resume seems incomplete. Please upload a full resume." 
+        });
+      }
+
+      if (resumeText.length > 10000) {
+        return res.status(400).json({ 
+          error: "Resume is quite long. Consider shortening before rewriting." 
+        });
+      }
+
+      const rewrite = await rewriteResume(
+        resumeText,
+        jobDescription || "",
+        analysisResults || {}
+      );
+      
+      res.json(rewrite);
+    } catch (error: any) {
+      console.error("Resume rewrite error:", error);
+      
+      let errorMessage = "Couldn't generate revision right now. Please try again.";
+      if (error.message?.includes("rate limit") || error.message?.includes("quota")) {
+        errorMessage = "AI service is temporarily busy. Please try again in a moment.";
+      }
+      
+      res.status(500).json({ error: errorMessage });
     }
   });
 
