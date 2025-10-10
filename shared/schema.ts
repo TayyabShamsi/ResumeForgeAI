@@ -19,7 +19,7 @@ export const users = pgTable("users", {
   subscriptionStatus: subscriptionStatusEnum("subscription_status").notNull().default('active'),
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),
-  creditsRemaining: json("credits_remaining").$type<{ resume: number; interview: number; linkedin: number }>().default({ resume: 5, interview: 2, linkedin: 1 }),
+  creditsRemaining: json("credits_remaining").$type<{ resume: number; interview: number; linkedin: number; coverLetter: number }>().default({ resume: 5, interview: 2, linkedin: 1, coverLetter: 1 }),
   creditsResetDate: timestamp("credits_reset_date"),
   emailVerified: boolean("email_verified").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),

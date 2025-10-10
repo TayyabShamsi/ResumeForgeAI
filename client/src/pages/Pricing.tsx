@@ -121,10 +121,8 @@ export default function Pricing() {
     try {
       const priceId = billingInterval === "monthly" ? tier.priceIds.monthly : tier.priceIds.yearly;
       
-      const response = await apiRequest("/api/stripe/create-checkout-session", {
-        method: "POST",
-        body: JSON.stringify({ priceId }),
-      }) as { url: string };
+      const res = await apiRequest("POST", "/api/stripe/create-checkout-session", { priceId });
+      const response = await res.json() as { url: string };
 
       if (response.url) {
         window.location.href = response.url;

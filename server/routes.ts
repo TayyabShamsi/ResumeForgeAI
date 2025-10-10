@@ -90,6 +90,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register Stripe routes
   app.use("/api/stripe", stripeRouter);
   
+  // Get user subscription info endpoint
+  app.get("/api/subscription-info", authenticateSupabase, async (req, res) => {
+    try {
+      const user = (req as any).user;
+      
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      // Fetch user from database with subscription info
+      const dbUser = await storage.getUser(user.id);
+      
+      if (!dbUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const credits = dbUser.creditsRemaining as any || { resume: 5, interview: 2, linkedin: 1, coverLetter: 1 };
+      
+      res.json({
+        tier: dbUser.subscriptionTier || 'free',
+        status: dbUser.subscriptionStatus || 'active',
+        credits: {
+          resume: credits.resume || 0,
+          interview: credits.interview || 0,
+          linkedin: credits.linkedin || 0,
+          coverLetter: credits.coverLetter || 0,
+        },
+        resetDate: dbUser.creditsResetDate,
+      });
+    } catch (error: any) {
+      console.error("Error fetching subscription info:", error);
+      res.status(500).json({ error: "Failed to fetch subscription info" });
+    }
+  });
+  
   // Resume analysis endpoint (with credit check)
   app.post("/api/analyze-resume", authenticateSupabase, checkResumeCredits, upload.single("resume"), async (req, res) => {
     try {

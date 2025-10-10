@@ -11,6 +11,8 @@ import InterviewPrep from "@/pages/InterviewPrep";
 import LinkedInProfile from "@/pages/LinkedIn";
 import CoverLetter from "@/pages/CoverLetter";
 import Pricing from "@/pages/Pricing";
+import Login from "@/pages/Login";
+import Signup from "@/pages/Signup";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -22,6 +24,8 @@ function Router() {
       <Route path="/linkedin" component={LinkedInProfile} />
       <Route path="/cover-letter" component={CoverLetter} />
       <Route path="/pricing" component={Pricing} />
+      <Route path="/login" component={Login} />
+      <Route path="/signup" component={Signup} />
       <Route component={NotFound} />
     </Switch>
   );
