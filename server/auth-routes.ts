@@ -1,21 +1,90 @@
 import type { Express } from "express";
+import { createClient } from '@supabase/supabase-js';
 import { supabase } from "./supabase";
 import { db } from "./db";
 import { users } from "../shared/schema";
 import { eq } from "drizzle-orm";
 import type { Request, Response, NextFunction } from "express";
 
-// Supabase auth middleware
-export function authenticateSupabase(req: Request, res: Response, next: NextFunction) {
+// Supabase auth middleware with auto-refresh
+export async function authenticateSupabase(req: Request, res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization;
-  const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : req.cookies?.sb_access_token;
+  let accessToken = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : req.cookies?.sb_access_token;
+  let refreshToken = req.cookies?.sb_refresh_token;
 
-  if (!token) {
+  if (!accessToken) {
     return res.status(401).json({ error: "Authentication required" });
   }
 
-  // Store token for route handlers to use
-  (req as any).supabaseToken = token;
+  // Create request-scoped Supabase client
+  const requestClient = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  });
+
+  // Set session on request client
+  await requestClient.auth.setSession({
+    access_token: accessToken,
+    refresh_token: refreshToken || ''
+  });
+
+  // Try to verify the current token
+  let { data: { user }, error } = await requestClient.auth.getUser();
+
+  // If token is expired and we have a refresh token, try to refresh
+  if (error && refreshToken) {
+    try {
+      const { data: sessionData, error: refreshError } = await requestClient.auth.refreshSession({
+        refresh_token: refreshToken
+      });
+
+      if (!refreshError && sessionData.session && sessionData.user) {
+        // Update cookies with new tokens
+        res.cookie('sb_access_token', sessionData.session.access_token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          maxAge: 60 * 60 * 1000, // 1 hour
+          sameSite: 'lax'
+        });
+        res.cookie('sb_refresh_token', sessionData.session.refresh_token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+          sameSite: 'lax'
+        });
+
+        // Update for this request
+        accessToken = sessionData.session.access_token;
+        user = sessionData.user;
+        error = null;
+        
+        // Update request client with new session
+        await requestClient.auth.setSession({
+          access_token: sessionData.session.access_token,
+          refresh_token: sessionData.session.refresh_token
+        });
+      }
+    } catch (refreshError) {
+      console.error("Auto-refresh failed:", refreshError);
+    }
+  }
+
+  if (error || !user) {
+    res.clearCookie('sb_access_token');
+    res.clearCookie('sb_refresh_token');
+    return res.status(401).json({ error: "Invalid or expired session" });
+  }
+
+  // Store request-scoped client, token and user for route handlers
+  (req as any).supabaseClient = requestClient;
+  (req as any).supabaseToken = accessToken;
+  (req as any).user = {
+    id: user.id,
+    email: user.email,
+    token: accessToken
+  };
   next();
 }
 
@@ -76,12 +145,18 @@ export function registerAuthRoutes(app: Express) {
         emailVerified: false,
       }).returning();
 
-      // Set Supabase session cookie
+      // Set Supabase session cookies (both access and refresh tokens)
       if (authData.session) {
         res.cookie('sb_access_token', authData.session.access_token, {
           httpOnly: true,
           secure: process.env.NODE_ENV === 'production',
-          maxAge: 7 * 24 * 60 * 60 * 1000,
+          maxAge: 60 * 60 * 1000, // 1 hour
+          sameSite: 'lax'
+        });
+        res.cookie('sb_refresh_token', authData.session.refresh_token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
           sameSite: 'lax'
         });
       }
@@ -132,12 +207,18 @@ export function registerAuthRoutes(app: Express) {
         return res.status(404).json({ error: "User profile not found" });
       }
 
-      // Set Supabase session cookie
+      // Set Supabase session cookies (both access and refresh tokens)
       if (authData.session) {
         res.cookie('sb_access_token', authData.session.access_token, {
           httpOnly: true,
           secure: process.env.NODE_ENV === 'production',
-          maxAge: 7 * 24 * 60 * 60 * 1000,
+          maxAge: 60 * 60 * 1000, // 1 hour
+          sameSite: 'lax'
+        });
+        res.cookie('sb_refresh_token', authData.session.refresh_token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
           sameSite: 'lax'
         });
       }
@@ -162,17 +243,10 @@ export function registerAuthRoutes(app: Express) {
   // Get current user (protected)
   app.get("/api/auth/me", authenticateSupabase, async (req, res) => {
     try {
-      const token = (req as any).supabaseToken;
-      
-      // Get user from Supabase token
-      const { data: { user: supabaseUser }, error } = await supabase.auth.getUser(token);
-      
-      if (error || !supabaseUser) {
-        return res.status(401).json({ error: "Invalid session" });
-      }
+      const userId = (req as any).user.id;
 
       // Get user data from our database
-      const [user] = await db.select().from(users).where(eq(users.id, supabaseUser.id)).limit(1);
+      const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
       
       if (!user) {
         return res.status(404).json({ error: "User not found" });
@@ -195,6 +269,50 @@ export function registerAuthRoutes(app: Express) {
     }
   });
 
+  // Refresh token endpoint
+  app.post("/api/auth/refresh", async (req, res) => {
+    try {
+      const refreshToken = req.cookies?.sb_refresh_token;
+
+      if (!refreshToken) {
+        return res.status(401).json({ error: "No refresh token" });
+      }
+
+      // Refresh the session
+      const { data: sessionData, error: refreshError } = await supabase.auth.refreshSession({
+        refresh_token: refreshToken
+      });
+
+      if (refreshError || !sessionData.session) {
+        res.clearCookie('sb_access_token');
+        res.clearCookie('sb_refresh_token');
+        return res.status(401).json({ error: "Invalid refresh token" });
+      }
+
+      // Set new session cookies
+      res.cookie('sb_access_token', sessionData.session.access_token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 60 * 60 * 1000, // 1 hour
+        sameSite: 'lax'
+      });
+      res.cookie('sb_refresh_token', sessionData.session.refresh_token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        sameSite: 'lax'
+      });
+
+      res.json({ 
+        token: sessionData.session.access_token,
+        message: "Token refreshed successfully" 
+      });
+    } catch (error: any) {
+      console.error("Token refresh error:", error);
+      res.status(500).json({ error: "Failed to refresh token" });
+    }
+  });
+
   // Logout
   app.post("/api/auth/logout", async (req, res) => {
     try {
@@ -205,6 +323,7 @@ export function registerAuthRoutes(app: Express) {
       }
       
       res.clearCookie('sb_access_token');
+      res.clearCookie('sb_refresh_token');
       res.json({ message: "Logged out successfully" });
     } catch (error: any) {
       console.error("Logout error:", error);
@@ -254,14 +373,38 @@ export function registerAuthRoutes(app: Express) {
         });
       }
 
-      // Update password via Supabase
-      const { error } = await supabase.auth.updateUser({
+      // Exchange recovery token for session
+      const { data: sessionData, error: sessionError } = await supabase.auth.exchangeCodeForSession(token);
+
+      if (sessionError || !sessionData.session) {
+        return res.status(400).json({ error: "Invalid or expired reset token" });
+      }
+
+      // Create a temporary client with the recovery session
+      const tempClient = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!, {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      });
+
+      // Set the session with both access and refresh tokens
+      await tempClient.auth.setSession({
+        access_token: sessionData.session.access_token,
+        refresh_token: sessionData.session.refresh_token
+      });
+
+      // Update password using the authenticated session
+      const { error: updateError } = await tempClient.auth.updateUser({
         password: password
       });
 
-      if (error) {
-        return res.status(400).json({ error: error.message });
+      if (updateError) {
+        return res.status(400).json({ error: updateError.message });
       }
+
+      // Sign out the temporary session
+      await tempClient.auth.signOut();
 
       res.json({ message: "Password reset successfully" });
     } catch (error: any) {
@@ -294,11 +437,21 @@ export function registerAuthRoutes(app: Express) {
   // OAuth callback handler
   app.get("/api/auth/callback", async (req, res) => {
     try {
-      const { data: { user: supabaseUser } } = await supabase.auth.getUser();
+      const code = req.query.code as string;
 
-      if (!supabaseUser) {
+      if (!code) {
+        return res.redirect('/login?error=no_code');
+      }
+
+      // Exchange code for session
+      const { data: sessionData, error: sessionError } = await supabase.auth.exchangeCodeForSession(code);
+
+      if (sessionError || !sessionData.session || !sessionData.user) {
+        console.error("OAuth session exchange error:", sessionError);
         return res.redirect('/login?error=auth_failed');
       }
+
+      const supabaseUser = sessionData.user;
 
       // Check if user exists in our database
       const [existingUser] = await db.select().from(users).where(eq(users.id, supabaseUser.id)).limit(1);
@@ -322,6 +475,20 @@ export function registerAuthRoutes(app: Express) {
           emailVerified: true,
         });
       }
+
+      // Set session cookies
+      res.cookie('sb_access_token', sessionData.session.access_token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 60 * 60 * 1000, // 1 hour
+        sameSite: 'lax'
+      });
+      res.cookie('sb_refresh_token', sessionData.session.refresh_token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        sameSite: 'lax'
+      });
 
       res.redirect('/dashboard');
     } catch (error: any) {
