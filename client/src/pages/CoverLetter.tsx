@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 import { PageTransition } from "@/components/PageTransition";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -15,10 +16,51 @@ export default function CoverLetter() {
   const [tone, setTone] = useState("professional");
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedLetter, setGeneratedLetter] = useState("");
+  const { toast } = useToast();
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
+    if (!jobTitle.trim() || !companyName.trim()) {
+      toast({
+        title: "Required fields missing",
+        description: "Please provide at least a job title and company name.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const resumeText = sessionStorage.getItem("resumeText") || "Experienced professional with a track record of success";
+
     setIsGenerating(true);
-    setTimeout(() => {
+
+    try {
+      const response = await fetch("/api/generate-cover-letter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          resumeText,
+          jobTitle: jobTitle.trim(),
+          companyName: companyName.trim(),
+          jobDescription: jobDescription.trim(),
+          tone,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to generate cover letter");
+      }
+
+      setGeneratedLetter(data.coverLetter);
+    } catch (error: any) {
+      toast({
+        title: "Generation failed",
+        description: error.message || "Failed to generate cover letter. Please try again.",
+        variant: "destructive",
+      });
+      
+      // Fallback to basic template if AI fails
+      setTimeout(() => {
       let greeting = "Dear Hiring Manager,";
       let opening = "";
       let body = "";
@@ -60,12 +102,18 @@ ${closing}
 
 Best regards,
 [Your Name]`);
+      }, 500);
+    } finally {
       setIsGenerating(false);
-    }, 2500);
+    }
   };
 
   const handleCopy = () => {
     navigator.clipboard.writeText(generatedLetter);
+    toast({
+      title: "Copied to clipboard",
+      description: "Cover letter has been copied to your clipboard.",
+    });
   };
 
   const handleDownload = () => {

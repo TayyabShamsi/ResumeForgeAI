@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 import { PageTransition } from "@/components/PageTransition";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -13,33 +14,93 @@ export default function LinkedInProfile() {
   const [profileText, setProfileText] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  const [optimizationData, setOptimizationData] = useState<any>(null);
+  const { toast } = useToast();
 
-  const handleAnalyze = () => {
+  const handleAnalyze = async () => {
+    if (!profileUrl.trim() && !profileText.trim()) {
+      toast({
+        title: "Input required",
+        description: "Please provide either a profile URL or paste your profile content.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsAnalyzing(true);
-    setTimeout(() => {
-      setIsAnalyzing(false);
+
+    try {
+      const response = await fetch("/api/optimize-linkedin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          profileUrl: profileUrl.trim() || undefined,
+          profileContent: profileText.trim() || undefined,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to optimize profile");
+      }
+
+      setOptimizationData(data);
       setShowResults(true);
-    }, 2000);
+    } catch (error: any) {
+      toast({
+        title: "Analysis failed",
+        description: error.message || "Failed to analyze LinkedIn profile. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
-  const optimizationTips = [
+  const optimizationTips = optimizationData ? [
+    {
+      section: "Headline",
+      current: optimizationData.headline?.before || "Software Engineer at Tech Company",
+      optimized: optimizationData.headline?.after || "Senior Software Engineer | Expert | Building Solutions",
+      impact: "3x more profile views",
+      tips: optimizationData.headline?.tips || []
+    },
+    {
+      section: "About Section",
+      current: optimizationData.about?.before || "I'm a software engineer...",
+      optimized: optimizationData.about?.after || "Transforming ideas into scalable applications...",
+      impact: "Higher engagement rate",
+      tips: optimizationData.about?.tips || []
+    },
+    {
+      section: "Experience Bullet",
+      current: optimizationData.experience?.before || "Worked on projects",
+      optimized: optimizationData.experience?.after || "Led development of solutions...",
+      impact: "More recruiter interest",
+      tips: optimizationData.experience?.tips || []
+    }
+  ] : [
     {
       section: "Headline",
       current: "Software Engineer at Tech Company",
       optimized: "Senior Software Engineer | React & Node.js Expert | Building Scalable Solutions for 10M+ Users",
-      impact: "3x more profile views"
+      impact: "3x more profile views",
+      tips: []
     },
     {
       section: "About Section",
       current: "I'm a software engineer with experience in web development...",
       optimized: "Transforming ideas into scalable web applications\n\n5+ years building products that impact millions of users. Specialized in React, Node.js, and cloud architecture. Led development of features that increased user engagement by 45%.\n\nPassionate about clean code, performance optimization, and mentoring junior developers.",
-      impact: "Higher engagement rate"
+      impact: "Higher engagement rate",
+      tips: []
     },
     {
       section: "Experience Bullet",
       current: "Worked on various projects and improved performance",
       optimized: "• Led development of microservices architecture serving 10M+ daily users\n• Reduced API response time by 65% through Redis caching and query optimization\n• Mentored 5 junior developers, improving team velocity by 30%",
-      impact: "More recruiter interest"
+      impact: "More recruiter interest",
+      tips: []
     }
   ];
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Sparkles, FileText, Target, CheckCircle, TrendingUp, Download, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -47,10 +47,52 @@ const mockData = {
 export default function Results() {
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState("overview");
+  const [analysisData, setAnalysisData] = useState<typeof mockData>(mockData);
+  const [isGenerating, setIsGenerating] = useState(false);
 
-  const handleGenerateQuestions = () => {
-    console.log("Generating interview questions");
-    setLocation("/interview-prep");
+  useEffect(() => {
+    const storedData = sessionStorage.getItem("resumeAnalysis");
+    if (storedData) {
+      try {
+        const data = JSON.parse(storedData);
+        setAnalysisData(data);
+      } catch (e) {
+        console.error("Failed to parse stored analysis data", e);
+      }
+    }
+  }, []);
+
+  const handleGenerateQuestions = async () => {
+    const resumeText = sessionStorage.getItem("resumeText") || "";
+    const jobDescription = sessionStorage.getItem("jobDescription") || "";
+
+    if (!resumeText || !jobDescription) {
+      setLocation("/interview-prep");
+      return;
+    }
+
+    setIsGenerating(true);
+
+    try {
+      const response = await fetch("/api/generate-questions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resumeText, jobDescription }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        sessionStorage.setItem("interviewQuestions", JSON.stringify(data));
+      }
+
+      setLocation("/interview-prep");
+    } catch (error) {
+      console.error("Failed to generate questions:", error);
+      setLocation("/interview-prep");
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleDownloadReport = () => {
@@ -80,14 +122,14 @@ export default function Results() {
           {/* Score Dashboard */}
           <div className="grid lg:grid-cols-3 gap-8 items-start">
             <div className="flex justify-center">
-              <ScoreCircle score={mockData.score} />
+              <ScoreCircle score={analysisData.score} />
             </div>
             <div className="lg:col-span-2 grid sm:grid-cols-2 gap-4">
               {[
-                { title: "Sections Analyzed", value: mockData.sectionsAnalyzed, icon: FileText, description: "All major sections reviewed" },
-                { title: "Keywords Found", value: mockData.keywordsFound, icon: Target, description: "Matching job requirements" },
-                { title: "ATS Score", value: `${mockData.atsScore}%`, icon: CheckCircle, description: "Excellent compatibility" },
-                { title: "Improvement", value: mockData.improvement, icon: TrendingUp, description: "Potential score increase" }
+                { title: "Sections Analyzed", value: analysisData.sectionsAnalyzed, icon: FileText, description: "All major sections reviewed" },
+                { title: "Keywords Found", value: analysisData.keywordsFound, icon: Target, description: "Matching job requirements" },
+                { title: "ATS Score", value: `${analysisData.atsScore}%`, icon: CheckCircle, description: "Excellent compatibility" },
+                { title: "Improvement", value: analysisData.improvement, icon: TrendingUp, description: "Potential score increase" }
               ].map((metric, index) => (
                 <MetricCard key={index} {...metric} />
               ))}
@@ -117,7 +159,7 @@ export default function Results() {
                         Your resume will likely pass Applicant Tracking Systems
                       </p>
                     </div>
-                    <ATSBadge passed={mockData.atsScore >= 70} score={mockData.atsScore} />
+                    <ATSBadge passed={analysisData.atsScore >= 70} score={analysisData.atsScore} />
                   </div>
                 </div>
               </Card>
@@ -129,7 +171,7 @@ export default function Results() {
                     Strengths
                   </h3>
                   <ul className="space-y-3">
-                    {mockData.roasts.filter(r => r.type === 'strength').map((roast, index) => (
+                    {analysisData.roasts.filter(r => r.type === 'strength').map((roast, index) => (
                       <li key={index} className="flex items-start gap-2">
                         <CheckCircle className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                         <span className="text-sm">{roast.text}</span>
@@ -144,7 +186,7 @@ export default function Results() {
                     Areas to Improve
                   </h3>
                   <ul className="space-y-3">
-                    {mockData.roasts.filter(r => r.type === 'criticism').map((roast, index) => (
+                    {analysisData.roasts.filter(r => r.type === 'criticism').map((roast, index) => (
                       <li key={index} className="flex items-start gap-2">
                         <span className="w-4 h-4 rounded-full bg-destructive/20 flex items-center justify-center text-destructive text-xs mt-0.5 flex-shrink-0">×</span>
                         <span className="text-sm">{roast.text}</span>
@@ -156,7 +198,7 @@ export default function Results() {
             </TabsContent>
 
             <TabsContent value="roast" className="space-y-4">
-              {mockData.roasts.map((roast, index) => (
+              {analysisData.roasts.map((roast, index) => (
                 <RoastItem
                   key={index}
                   type={roast.type}
@@ -177,7 +219,7 @@ export default function Results() {
                   <p className="text-muted-foreground mb-6">
                     Add these keywords to improve ATS compatibility and match job requirements
                   </p>
-                  <KeywordCloud keywords={mockData.missingKeywords} />
+                  <KeywordCloud keywords={analysisData.missingKeywords} />
                 </div>
               </Card>
             </TabsContent>
@@ -196,7 +238,7 @@ export default function Results() {
                 </div>
               </Card>
 
-              {mockData.beforeAfter.map((section, index) => (
+              {analysisData.beforeAfter.map((section, index) => (
                 <BeforeAfterSection
                   key={index}
                   title={section.title}
@@ -222,9 +264,10 @@ export default function Results() {
                 size="lg"
                 className="shadow-lg shadow-primary/25"
                 data-testid="button-generate-questions"
+                disabled={isGenerating}
               >
                 <Sparkles className="mr-2 h-5 w-5" />
-                Generate Interview Questions
+                {isGenerating ? "Generating..." : "Generate Interview Questions"}
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </div>

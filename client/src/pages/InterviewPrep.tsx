@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Download, ArrowLeft, Filter, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -83,12 +83,25 @@ const mockQuestions = {
 export default function InterviewPrep() {
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState("all");
+  const [questionsData, setQuestionsData] = useState(mockQuestions);
+
+  useEffect(() => {
+    const storedQuestions = sessionStorage.getItem("interviewQuestions");
+    if (storedQuestions) {
+      try {
+        const data = JSON.parse(storedQuestions);
+        setQuestionsData(data);
+      } catch (e) {
+        console.error("Failed to parse stored questions", e);
+      }
+    }
+  }, []);
 
   const allQuestions = [
-    ...mockQuestions.behavioral,
-    ...mockQuestions.technical,
-    ...mockQuestions.situational,
-    ...mockQuestions.curveball
+    ...(questionsData.behavioral || []),
+    ...(questionsData.technical || []),
+    ...(questionsData.situational || []),
+    ...(questionsData.curveball || [])
   ];
 
   const handleDownloadPDF = () => {
@@ -96,10 +109,10 @@ export default function InterviewPrep() {
   };
 
   const categoryStats = {
-    behavioral: mockQuestions.behavioral.length,
-    technical: mockQuestions.technical.length,
-    situational: mockQuestions.situational.length,
-    curveball: mockQuestions.curveball.length,
+    behavioral: questionsData.behavioral?.length || 0,
+    technical: questionsData.technical?.length || 0,
+    situational: questionsData.situational?.length || 0,
+    curveball: questionsData.curveball?.length || 0,
   };
 
   return (
@@ -183,25 +196,25 @@ export default function InterviewPrep() {
             </TabsContent>
 
             <TabsContent value="behavioral" className="space-y-4">
-              {mockQuestions.behavioral.map((q, index) => (
+              {(questionsData.behavioral || []).map((q, index) => (
                 <InterviewQuestion key={index} {...q} />
               ))}
             </TabsContent>
 
             <TabsContent value="technical" className="space-y-4">
-              {mockQuestions.technical.map((q, index) => (
+              {(questionsData.technical || []).map((q, index) => (
                 <InterviewQuestion key={index} {...q} />
               ))}
             </TabsContent>
 
             <TabsContent value="situational" className="space-y-4">
-              {mockQuestions.situational.map((q, index) => (
+              {(questionsData.situational || []).map((q, index) => (
                 <InterviewQuestion key={index} {...q} />
               ))}
             </TabsContent>
 
             <TabsContent value="curveball" className="space-y-4">
-              {mockQuestions.curveball.map((q, index) => (
+              {(questionsData.curveball || []).map((q, index) => (
                 <InterviewQuestion key={index} {...q} />
               ))}
             </TabsContent>

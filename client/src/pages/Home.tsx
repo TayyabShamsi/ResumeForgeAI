@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { PageTransition } from "@/components/PageTransition";
+import { useToast } from "@/hooks/use-toast";
 import heroImage from "@assets/generated_images/AI_resume_analysis_visualization_1daaff06.png";
 
 export default function Home() {
@@ -18,18 +19,20 @@ export default function Home() {
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [loadingMessage, setLoadingMessage] = useState("");
   const [showPasteOption, setShowPasteOption] = useState(false);
+  const { toast } = useToast();
 
   const MAX_RESUME_LENGTH = 10000;
 
-  const handleRoast = () => {
+  const handleRoast = async () => {
     if (!resumeFile && !resumeText.trim()) return;
-    
-    if (resumeFile) {
-      console.log("Roasting resume:", resumeFile.name);
-    } else {
-      console.log("Roasting pasted resume text");
+    if (!jobDescription.trim()) {
+      toast({
+        title: "Job description required",
+        description: "Please enter a job description to analyze your resume against.",
+        variant: "destructive",
+      });
+      return;
     }
-    console.log("Job description:", jobDescription);
     
     setIsLoading(true);
     setLoadingProgress(0);
@@ -46,15 +49,53 @@ export default function Home() {
     let step = 0;
     const interval = setInterval(() => {
       step++;
-      setLoadingProgress((step / messages.length) * 100);
+      setLoadingProgress(Math.min((step / messages.length) * 90, 90));
       if (step < messages.length) {
         setLoadingMessage(messages[step]);
       }
-      if (step >= messages.length) {
-        clearInterval(interval);
-        setTimeout(() => setLocation("/results"), 300);
+    }, 800);
+
+    try {
+      const formData = new FormData();
+      if (resumeFile) {
+        formData.append("resume", resumeFile);
+      } else {
+        formData.append("resumeText", resumeText);
       }
-    }, 400);
+      formData.append("jobDescription", jobDescription);
+
+      const response = await fetch("/api/analyze-resume", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to analyze resume");
+      }
+
+      clearInterval(interval);
+      setLoadingProgress(100);
+      setLoadingMessage("Analysis complete!");
+      
+      // Store results in sessionStorage for the Results page
+      const { resumeText: extractedText, ...analysisData } = data;
+      sessionStorage.setItem("resumeAnalysis", JSON.stringify(analysisData));
+      // Store the actual extracted resume text (not the filename)
+      sessionStorage.setItem("resumeText", extractedText || resumeText || "");
+      sessionStorage.setItem("jobDescription", jobDescription);
+      
+      setTimeout(() => setLocation("/results"), 300);
+    } catch (error: any) {
+      clearInterval(interval);
+      setIsLoading(false);
+      toast({
+        title: "Analysis failed",
+        description: error.message || "Failed to analyze resume. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const features = [
