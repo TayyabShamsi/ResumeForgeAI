@@ -8,11 +8,10 @@ export const subscriptionTierEnum = pgEnum('subscription_tier', ['free', 'pro', 
 export const subscriptionStatusEnum = pgEnum('subscription_status', ['active', 'cancelled', 'past_due', 'trialing']);
 export const eventTypeEnum = pgEnum('event_type', ['subscribed', 'cancelled', 'upgraded', 'downgraded', 'renewed']);
 
-// Users table
+// Users table (authentication handled by Supabase)
 export const users = pgTable("users", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id").primaryKey(), // Supabase user ID
   email: text("email").notNull().unique(),
-  passwordHash: text("password_hash"),
   name: text("name").notNull(),
   googleId: text("google_id"),
   profilePicture: text("profile_picture"),
@@ -23,9 +22,6 @@ export const users = pgTable("users", {
   creditsRemaining: json("credits_remaining").$type<{ resume: number; interview: number; linkedin: number }>().default({ resume: 5, interview: 2, linkedin: 1 }),
   creditsResetDate: timestamp("credits_reset_date"),
   emailVerified: boolean("email_verified").notNull().default(false),
-  verificationToken: text("verification_token"),
-  passwordResetToken: text("password_reset_token"),
-  passwordResetExpires: timestamp("password_reset_expires"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -55,11 +51,8 @@ export const resumes = pgTable("resumes", {
 // Zod schemas for validation
 export const insertUserSchema = createInsertSchema(users).pick({
   email: true,
-  passwordHash: true,
   name: true,
   googleId: true,
-}).extend({
-  password: z.string().min(8).regex(/^(?=.*[A-Z])(?=.*\d)/, "Password must contain at least 1 uppercase letter and 1 number"),
 });
 
 export const loginSchema = z.object({

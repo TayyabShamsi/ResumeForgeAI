@@ -1,9 +1,23 @@
 import type { Express } from "express";
+import { supabase } from "./supabase";
 import { db } from "./db";
 import { users } from "../shared/schema";
-import { hashPassword, comparePassword, generateToken, authenticateUser } from "./auth";
 import { eq } from "drizzle-orm";
-import crypto from "crypto";
+import type { Request, Response, NextFunction } from "express";
+
+// Supabase auth middleware
+export function authenticateSupabase(req: Request, res: Response, next: NextFunction) {
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : req.cookies?.sb_access_token;
+
+  if (!token) {
+    return res.status(401).json({ error: "Authentication required" });
+  }
+
+  // Store token for route handlers to use
+  (req as any).supabaseToken = token;
+  next();
+}
 
 export function registerAuthRoutes(app: Express) {
   // Signup
@@ -13,12 +27,6 @@ export function registerAuthRoutes(app: Express) {
 
       if (!email || !password || !name) {
         return res.status(400).json({ error: "Email, password, and name are required" });
-      }
-
-      // Validate email format
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(email)) {
-        return res.status(400).json({ error: "Invalid email format" });
       }
 
       // Validate password strength
@@ -32,24 +40,34 @@ export function registerAuthRoutes(app: Express) {
         return res.status(400).json({ error: "Password must contain at least 1 number" });
       }
 
-      // Check if user exists
-      const existing = await db.select().from(users).where(eq(users.email, email)).limit(1);
-      if (existing.length > 0) {
-        return res.status(400).json({ error: "Email already registered" });
+      // Sign up with Supabase
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name,
+          }
+        }
+      });
+
+      if (authError) {
+        return res.status(400).json({ error: authError.message });
       }
 
-      // Hash password
-      const passwordHash = await hashPassword(password);
+      if (!authData.user) {
+        return res.status(400).json({ error: "Failed to create user" });
+      }
 
       // Calculate next month's 1st for credit reset
       const nextMonth = new Date();
       nextMonth.setMonth(nextMonth.getMonth() + 1, 1);
       nextMonth.setHours(0, 0, 0, 0);
 
-      // Create user
+      // Create user record in our database
       const [newUser] = await db.insert(users).values({
+        id: authData.user.id,
         email,
-        passwordHash,
         name,
         subscriptionTier: 'free',
         subscriptionStatus: 'active',
@@ -58,19 +76,18 @@ export function registerAuthRoutes(app: Express) {
         emailVerified: false,
       }).returning();
 
-      // Generate token
-      const token = generateToken(newUser);
-
-      // Set cookie
-      res.cookie('token', token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-        sameSite: 'lax'
-      });
+      // Set Supabase session cookie
+      if (authData.session) {
+        res.cookie('sb_access_token', authData.session.access_token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          maxAge: 7 * 24 * 60 * 60 * 1000,
+          sameSite: 'lax'
+        });
+      }
 
       res.json({
-        token,
+        token: authData.session?.access_token,
         user: {
           id: newUser.id,
           email: newUser.email,
@@ -94,31 +111,39 @@ export function registerAuthRoutes(app: Express) {
         return res.status(400).json({ error: "Email and password are required" });
       }
 
-      // Find user
-      const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
-      if (!user || !user.passwordHash) {
-        return res.status(401).json({ error: "Invalid email or password" });
-      }
-
-      // Compare password
-      const isValid = await comparePassword(password, user.passwordHash);
-      if (!isValid) {
-        return res.status(401).json({ error: "Invalid email or password" });
-      }
-
-      // Generate token
-      const token = generateToken(user);
-
-      // Set cookie
-      res.cookie('token', token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-        sameSite: 'lax'
+      // Sign in with Supabase
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       });
 
+      if (authError) {
+        return res.status(401).json({ error: "Invalid email or password" });
+      }
+
+      if (!authData.user) {
+        return res.status(401).json({ error: "Invalid email or password" });
+      }
+
+      // Get user data from our database
+      const [user] = await db.select().from(users).where(eq(users.id, authData.user.id)).limit(1);
+      
+      if (!user) {
+        return res.status(404).json({ error: "User profile not found" });
+      }
+
+      // Set Supabase session cookie
+      if (authData.session) {
+        res.cookie('sb_access_token', authData.session.access_token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          maxAge: 7 * 24 * 60 * 60 * 1000,
+          sameSite: 'lax'
+        });
+      }
+
       res.json({
-        token,
+        token: authData.session?.access_token,
         user: {
           id: user.id,
           email: user.email,
@@ -135,11 +160,20 @@ export function registerAuthRoutes(app: Express) {
   });
 
   // Get current user (protected)
-  app.get("/api/auth/me", authenticateUser, async (req, res) => {
+  app.get("/api/auth/me", authenticateSupabase, async (req, res) => {
     try {
-      const userId = (req as any).user.userId;
+      const token = (req as any).supabaseToken;
       
-      const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      // Get user from Supabase token
+      const { data: { user: supabaseUser }, error } = await supabase.auth.getUser(token);
+      
+      if (error || !supabaseUser) {
+        return res.status(401).json({ error: "Invalid session" });
+      }
+
+      // Get user data from our database
+      const [user] = await db.select().from(users).where(eq(users.id, supabaseUser.id)).limit(1);
+      
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
@@ -162,9 +196,20 @@ export function registerAuthRoutes(app: Express) {
   });
 
   // Logout
-  app.post("/api/auth/logout", (req, res) => {
-    res.clearCookie('token');
-    res.json({ message: "Logged out successfully" });
+  app.post("/api/auth/logout", async (req, res) => {
+    try {
+      const token = req.cookies?.sb_access_token;
+      
+      if (token) {
+        await supabase.auth.signOut();
+      }
+      
+      res.clearCookie('sb_access_token');
+      res.json({ message: "Logged out successfully" });
+    } catch (error: any) {
+      console.error("Logout error:", error);
+      res.status(500).json({ error: "Logout failed" });
+    }
   });
 
   // Password reset request
@@ -172,25 +217,20 @@ export function registerAuthRoutes(app: Express) {
     try {
       const { email } = req.body;
 
-      const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
-      if (!user) {
-        // Don't reveal if email exists
-        return res.json({ message: "If email exists, reset link has been sent" });
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
       }
 
-      // Generate reset token
-      const resetToken = crypto.randomBytes(32).toString('hex');
-      const resetExpires = new Date(Date.now() + 3600000); // 1 hour
+      // Send password reset email via Supabase
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${req.headers.origin}/reset-password`,
+      });
 
-      await db.update(users)
-        .set({
-          passwordResetToken: resetToken,
-          passwordResetExpires: resetExpires,
-        })
-        .where(eq(users.id, user.id));
+      if (error) {
+        console.error("Password reset error:", error);
+      }
 
-      // TODO: Send email with reset link
-      // For now, just return success
+      // Always return success to prevent email enumeration
       res.json({ message: "If email exists, reset link has been sent" });
     } catch (error: any) {
       console.error("Forgot password error:", error);
@@ -198,43 +238,95 @@ export function registerAuthRoutes(app: Express) {
     }
   });
 
-  // Reset password
+  // Reset password (called from reset link)
   app.post("/api/auth/reset-password", async (req, res) => {
     try {
-      const { token, newPassword } = req.body;
+      const { password, token } = req.body;
 
-      if (!token || !newPassword) {
-        return res.status(400).json({ error: "Token and new password are required" });
+      if (!password || !token) {
+        return res.status(400).json({ error: "Password and token are required" });
       }
 
       // Validate password
-      if (newPassword.length < 8 || !/[A-Z]/.test(newPassword) || !/\d/.test(newPassword)) {
-        return res.status(400).json({ error: "Password must be at least 8 characters with 1 uppercase and 1 number" });
+      if (password.length < 8 || !/[A-Z]/.test(password) || !/\d/.test(password)) {
+        return res.status(400).json({ 
+          error: "Password must be at least 8 characters with 1 uppercase and 1 number" 
+        });
       }
 
-      // Find user with valid token
-      const [user] = await db.select().from(users).where(eq(users.passwordResetToken, token)).limit(1);
-      
-      if (!user || !user.passwordResetExpires || user.passwordResetExpires < new Date()) {
-        return res.status(400).json({ error: "Invalid or expired reset token" });
+      // Update password via Supabase
+      const { error } = await supabase.auth.updateUser({
+        password: password
+      });
+
+      if (error) {
+        return res.status(400).json({ error: error.message });
       }
-
-      // Hash new password
-      const passwordHash = await hashPassword(newPassword);
-
-      // Update password and clear reset token
-      await db.update(users)
-        .set({
-          passwordHash,
-          passwordResetToken: null,
-          passwordResetExpires: null,
-        })
-        .where(eq(users.id, user.id));
 
       res.json({ message: "Password reset successfully" });
     } catch (error: any) {
       console.error("Reset password error:", error);
       res.status(500).json({ error: "Failed to reset password" });
+    }
+  });
+
+  // Google OAuth
+  app.get("/api/auth/google", async (req, res) => {
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${req.headers.origin}/auth/callback`,
+        }
+      });
+
+      if (error) {
+        return res.status(400).json({ error: error.message });
+      }
+
+      res.redirect(data.url);
+    } catch (error: any) {
+      console.error("Google OAuth error:", error);
+      res.status(500).json({ error: "OAuth failed" });
+    }
+  });
+
+  // OAuth callback handler
+  app.get("/api/auth/callback", async (req, res) => {
+    try {
+      const { data: { user: supabaseUser } } = await supabase.auth.getUser();
+
+      if (!supabaseUser) {
+        return res.redirect('/login?error=auth_failed');
+      }
+
+      // Check if user exists in our database
+      const [existingUser] = await db.select().from(users).where(eq(users.id, supabaseUser.id)).limit(1);
+
+      if (!existingUser) {
+        // Create user record for OAuth user
+        const nextMonth = new Date();
+        nextMonth.setMonth(nextMonth.getMonth() + 1, 1);
+        nextMonth.setHours(0, 0, 0, 0);
+
+        await db.insert(users).values({
+          id: supabaseUser.id,
+          email: supabaseUser.email!,
+          name: supabaseUser.user_metadata?.name || supabaseUser.email!.split('@')[0],
+          googleId: supabaseUser.user_metadata?.sub,
+          profilePicture: supabaseUser.user_metadata?.avatar_url,
+          subscriptionTier: 'free',
+          subscriptionStatus: 'active',
+          creditsRemaining: { resume: 5, interview: 2, linkedin: 1 },
+          creditsResetDate: nextMonth,
+          emailVerified: true,
+        });
+      }
+
+      res.redirect('/dashboard');
+    } catch (error: any) {
+      console.error("OAuth callback error:", error);
+      res.redirect('/login?error=callback_failed');
     }
   });
 }
