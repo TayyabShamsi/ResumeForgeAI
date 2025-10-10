@@ -3,6 +3,7 @@ import { registerRoutes } from "./routes";
 import { registerAuthRoutes } from "./auth-routes";
 import { setupVite, serveStatic, log } from "./vite";
 import cookieParser from "cookie-parser";
+import { setupCronJobs } from "./cron-jobs";
 
 const app = express();
 
@@ -82,5 +83,8 @@ app.use((req, res, next) => {
     reusePort: true,
   }, () => {
     log(`serving on port ${port}`);
+    
+    // Setup scheduled cron jobs after server is running
+    setupCronJobs();
   });
 })();
