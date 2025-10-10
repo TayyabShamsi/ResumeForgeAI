@@ -1,0 +1,404 @@
+Authentication + Payment & Subscription System
+Add complete user authentication and Stripe-based subscription system to the existing ResumeForge AI app:
+
+=== USER AUTHENTICATION SYSTEM ===
+
+Implement full authentication with these features:
+
+SIGNUP/LOGIN:
+- Email/password authentication
+- Add Google OAuth as alternative signup option (use Passport.js or similar)
+- Password requirements: minimum 8 characters, at least 1 uppercase, 1 number
+- Hash passwords with bcrypt (salt rounds: 10)
+- JWT token-based sessions (token expires in 7 days)
+- Store JWT in httpOnly cookies for security
+
+AUTH ROUTES:
+
+POST /api/auth/signup:
+- Accept: { email, password, name }
+- Validate email format and uniqueness
+- Hash password with bcrypt
+- Create user with default 'free' tier
+- Set initial credits: { resume: 5, interview: 2, linkedin: 1 }
+- Set credits_reset_date to 1st of next month
+- Generate JWT token
+- Return: { token, user: { id, email, name, subscription_tier } }
+
+POST /api/auth/login:
+- Accept: { email, password }
+- Find user by email
+- Compare password with bcrypt
+- Generate new JWT token
+- Return: { token, user: { id, email, name, subscription_tier, credits_remaining } }
+
+GET /api/auth/me (protected route):
+- Verify JWT token from Authorization header or cookie
+- Return current user data with subscription info
+
+POST /api/auth/logout:
+- Clear JWT cookie
+- Return success message
+
+POST /api/auth/forgot-password (optional but recommended):
+- Accept: { email }
+- Generate password reset token (expires in 1 hour)
+- Send email with reset link (use SendGrid or similar)
+
+POST /api/auth/reset-password:
+- Accept: { token, new_password }
+- Verify reset token validity
+- Hash new password and update user
+
+GET /api/auth/google (Google OAuth):
+- Redirect to Google consent screen
+- Handle callback and create/login user
+- Generate JWT and redirect to dashboard
+
+AUTH MIDDLEWARE:
+Create middleware function: authenticateUser(req, res, next)
+- Extract JWT from Authorization header or cookie
+- Verify token validity
+- Attach user object to req.user
+- If invalid: return 401 Unauthorized
+- Apply this middleware to all protected routes
+
+FRONTEND AUTH PAGES:
+
+/signup page:
+- Form fields: Name, Email, Password, Confirm Password
+- "Sign up with Google" button (Google logo)
+- Password strength indicator (weak/medium/strong)
+- Checkbox: "I agree to Terms of Service and Privacy Policy"
+- "Already have an account? Login" link
+- On submit: call /api/auth/signup, store token, redirect to /dashboard
+
+/login page:
+- Form fields: Email, Password
+- "Sign in with Google" button
+- "Remember me" checkbox (extends token expiry)
+- "Forgot password?" link
+- "Don't have an account? Sign up" link
+- On submit: call /api/auth/login, store token, redirect to /dashboard
+
+Protected Route Wrapper:
+- Create React component: <ProtectedRoute>
+- Check if user is authenticated (JWT exists and valid)
+- If not authenticated: redirect to /login
+- If authenticated: render requested page
+- Wrap all dashboard pages with this
+
+Navbar Updates:
+- If NOT logged in: show "Login" and "Sign Up" buttons
+- If logged in: show user name/avatar, dropdown with:
+  * Dashboard
+  * Settings  
+  * Logout
+- Display subscription badge next to username (Free/Pro/Premium)
+
+=== DATABASE SCHEMA ===
+
+users table:
+- id (primary key, UUID)
+- email (unique, not null)
+- password_hash (bcrypt hashed, nullable if Google OAuth)
+- name (not null)
+- google_id (nullable, for OAuth users)
+- profile_picture (URL, nullable)
+- subscription_tier (enum: 'free', 'pro', 'premium', default: 'free')
+- subscription_status (enum: 'active', 'cancelled', 'past_due', 'trialing', default: 'active')
+- stripe_customer_id (string, nullable)
+- stripe_subscription_id (string, nullable)
+- credits_remaining (JSON: { resume: 5, interview: 2, linkedin: 1 })
+- credits_reset_date (timestamp)
+- email_verified (boolean, default: false)
+- verification_token (string, nullable)
+- password_reset_token (string, nullable)
+- password_reset_expires (timestamp, nullable)
+- created_at, updated_at
+
+subscription_history table:
+- id
+- user_id (foreign key to users)
+- event_type (enum: 'subscribed', 'cancelled', 'upgraded', 'downgraded', 'renewed')
+- from_tier, to_tier
+- amount_paid (decimal)
+- stripe_invoice_id (string)
+- timestamp
+
+resumes table:
+- id
+- user_id (foreign key to users)
+- filename
+- original_text (text)
+- analysis_results (JSON)
+- created_at
+- Add constraint: max 1 for free, 5 for pro, unlimited for premium
+
+=== PRICING TIERS ===
+
+FREE TIER (default for all new signups):
+- 5 resume analyses per month
+- 2 interview question sets per month
+- 1 LinkedIn optimization per month
+- Basic ATS scan only
+- Watermarked PDF exports
+- Store 1 resume
+- Credits reset on 1st of each month
+
+PRO TIER - $4.99/month or $49/year (save $10):
+- Unlimited resume analyses
+- Unlimited interview questions
+- 10 LinkedIn optimizations per month
+- Unlimited cover letters
+- Advanced ATS scanner
+- No watermarks
+- Store 5 resumes
+- Priority processing
+- "PRO" badge
+
+PREMIUM TIER - $9.99/month or $99/year (save $20):
+- Everything in Pro
+- Unlimited LinkedIn optimizations
+- Resume comparison tool
+- Job match scorer
+- 10+ premium templates
+- Career tips newsletter
+- Priority support
+- Store unlimited resumes
+- "PREMIUM" badge
+
+=== STRIPE INTEGRATION ===
+
+Create Stripe products (do this in Stripe dashboard first):
+- Pro Monthly: $4.99
+- Pro Yearly: $49
+- Premium Monthly: $9.99
+- Premium Yearly: $99
+
+STRIPE ROUTES:
+
+POST /api/stripe/create-checkout-session (requires auth):
+- Accept: { tier: 'pro_monthly' | 'pro_yearly' | 'premium_monthly' | 'premium_yearly' }
+- Get user from req.user (auth middleware)
+- Create or get Stripe customer:
+  * If no stripe_customer_id: create Stripe customer with user email
+  * Save stripe_customer_id to user
+- Create checkout session:
+  * mode: 'subscription'
+  * price ID based on selected tier
+  * success_url: /success?session_id={CHECKOUT_SESSION_ID}
+  * cancel_url: /pricing
+  * customer: stripe_customer_id
+- Return checkout URL
+
+POST /api/stripe/webhook (public - Stripe calls this):
+- Verify Stripe webhook signature (CRITICAL for security)
+- Handle events:
+
+  checkout.session.completed:
+  - Extract customer_id and subscription_id
+  - Find user by stripe_customer_id
+  - Determine tier from price_id
+  - Update user: subscription_tier, subscription_status = 'active', stripe_subscription_id
+  - If pro: set credits { resume: -1, interview: -1, linkedin: 10 } (-1 means unlimited)
+  - If premium: set all credits to -1 (unlimited)
+  - Log to subscription_history
+
+  invoice.payment_succeeded:
+  - User by subscription_id
+  - Keep subscription_status = 'active'
+  - Reset monthly LinkedIn credits if Pro tier (10 credits)
+  - Log to subscription_history
+
+  invoice.payment_failed:
+  - Update subscription_status = 'past_due'
+  - Send warning email
+
+  customer.subscription.deleted:
+  - Downgrade user to 'free' tier
+  - Set subscription_status = 'cancelled'
+  - Reset credits to free limits: { resume: 5, interview: 2, linkedin: 1 }
+  - Log to subscription_history
+
+GET /api/stripe/customer-portal (requires auth):
+- Get user's stripe_customer_id
+- Create Stripe billing portal session
+- Return portal URL (for subscription management, payment updates, invoices)
+
+=== CREDIT MANAGEMENT SYSTEM ===
+
+Create middleware to check and deduct credits:
+
+checkResumeCredits(req, res, next):
+- Get user from req.user
+- If tier is 'pro' or 'premium': continue (unlimited)
+- If tier is 'free':
+  * If credits_remaining.resume > 0: deduct 1, save, continue
+  * Else: return 403 with { error: "No credits", message: "Upgrade to Pro for unlimited", upgradeUrl: "/pricing" }
+
+checkInterviewCredits(req, res, next):
+- Same logic for interview credits
+
+checkLinkedInCredits(req, res, next):
+- If tier is 'premium': continue (unlimited)
+- If tier is 'pro': check linkedin <= 10, deduct if available
+- If tier is 'free': check linkedin <= 1, deduct if available
+- Else: return upgrade prompt
+
+Apply middleware to routes:
+- POST /api/resume/analyze: use [authenticateUser, checkResumeCredits]
+- POST /api/interview/generate: use [authenticateUser, checkInterviewCredits]
+- POST /api/linkedin/optimize: use [authenticateUser, checkLinkedInCredits]
+- POST /api/cover-letter/generate: use [authenticateUser] (unlimited for all)
+
+Monthly Credit Reset (cron job):
+- Run at 00:00 on 1st of every month
+- For 'free' users: reset to { resume: 5, interview: 2, linkedin: 1 }
+- For 'pro' users: reset linkedin to 10
+- Update credits_reset_date to 1st of next month
+
+=== FRONTEND PAGES ===
+
+1. PRICING PAGE (/pricing):
+- 3-column comparison table
+- FREE column: list features, "Start Free" button → /signup
+- PRO column: "Most Popular" badge, list features, "$4.99/month" pricing
+  * "Monthly" / "Yearly" toggle showing savings
+  * "Upgrade to Pro" button → Stripe checkout
+- PREMIUM column: list features, "$9.99/month"
+  * "Upgrade to Premium" button → Stripe checkout
+- Testimonial section (3 cards with fake but realistic reviews)
+- FAQ accordion at bottom
+
+2. DASHBOARD PAGE (/dashboard - protected):
+- Header: "Welcome back, [Name]!" with profile picture
+- Subscription card:
+  * Current tier badge (Free/Pro/Premium) with color
+  * For FREE users:
+    - Credits display: "Resume: 3/5 | Interview: 1/2 | LinkedIn: 0/1"
+    - Progress bars for each
+    - "Resets on Nov 1, 2025"
+    - Big "Upgrade to Pro - $4.99/month" button
+  * For PRO/PREMIUM:
+    - "Unlimited analyses" with infinity icon
+    - For PRO: "LinkedIn: 7/10 this month"
+- Quick actions:
+  * "Analyze New Resume" card → /resume-analyzer
+  * "Generate Interview Questions" card → /interview-prep
+  * "Optimize LinkedIn" card → /linkedin-optimizer
+- Recent activity feed: last 5 actions with timestamps
+- Usage stats: total resumes analyzed, interviews generated, etc.
+
+3. SETTINGS PAGE (/settings - protected):
+- Account tab:
+  * Email (read-only)
+  * Name (editable input with "Save" button)
+  * "Change Password" button → modal with old/new password fields
+  * Profile picture upload (optional)
+
+- Subscription tab:
+  * Current plan card with badge
+  * If Free: "Upgrade" button → /pricing
+  * If Pro/Premium:
+    - "Manage Subscription" button → opens Stripe customer portal
+    - Billing history table (date, amount, invoice link)
+    - Next billing date
+  
+- Danger zone:
+  * "Delete Account" button (red) → confirmation modal → DELETE /api/auth/delete-account
+
+4. PAYWALL MODALS:
+When user hits credit limit, show modal:
+- Overlay blocking content
+- Title: "You've used all your [feature] credits!"
+- Comparison: what they get with Pro vs Free
+- "$4.99/month for unlimited access"
+- Two buttons:
+  * "Upgrade Now" (primary) → Stripe checkout
+  * "Maybe Later" (secondary) → closes modal
+
+On premium-only features (templates, job scorer):
+- Show lock icon overlay
+- Click triggers modal: "Premium Feature"
+- "Upgrade to Premium for $9.99/month"
+- Feature preview/demo
+
+5. SUCCESS/CANCEL PAGES:
+- /success:
+  * Confetti animation
+  * "Welcome to Pro!" (or Premium)
+  * List of unlocked features
+  * "Start Using Unlimited Features" button → /dashboard
+
+- /cancel:
+  * "Upgrade cancelled" message
+  * "You're still on Free tier"
+  * "Change your mind?" button → /pricing
+
+=== UI ENHANCEMENTS ===
+
+Navbar changes:
+- Show subscription badge next to user avatar (small colored pill: Free/Pro/Premium)
+- Dropdown menu on avatar click
+
+Add throughout app:
+- Upgrade prompts for free users (non-intrusive banners)
+- Feature comparison tooltips: hover over feature → see "Pro" or "Premium" required
+- Usage counters on feature pages for free users
+
+=== SECURITY ===
+
+- Validate all inputs (email format, password strength)
+- Rate limiting: 5 login attempts per 15 minutes per IP
+- 100 API requests per hour per user
+- Verify Stripe webhook signatures (use stripe.webhooks.constructEvent)
+- HTTPS only (Replit default)
+- HttpOnly cookies for JWT
+- CSRF protection on forms
+- SQL injection prevention (use parameterized queries)
+- XSS prevention (sanitize user inputs)
+
+=== ENVIRONMENT VARIABLES ===
+
+.env file:
+- JWT_SECRET (random 64-character string)
+- STRIPE_SECRET_KEY
+- STRIPE_PUBLISHABLE_KEY
+- STRIPE_WEBHOOK_SECRET
+- GOOGLE_CLIENT_ID (for OAuth)
+- GOOGLE_CLIENT_SECRET
+- SENDGRID_API_KEY (for emails)
+- GEMINI_API_KEY
+- SCRAPINGDOG_API_KEY
+- DATABASE_URL (if using PostgreSQL)
+
+=== EMAIL NOTIFICATIONS (optional but recommended) ===
+
+Setup SendGrid (100 free emails/day):
+- Welcome email after signup
+- Email verification link
+- Password reset email
+- "Credits reset" reminder (1st of month)
+- "You're running low on credits" (when 1 credit left)
+- Payment receipt (Stripe sends automatically)
+- Subscription cancelled confirmation
+
+=== TESTING CHECKLIST ===
+
+Test in Stripe TEST mode:
+1. Signup flow (email + Google OAuth)
+2. Login/logout
+3. Free user: use 5 resume credits → hit paywall
+4. Upgrade free → pro (test card: 4242 4242 4242 4242)
+5. Verify unlimited access after upgrade
+6. Pro user: use 10 LinkedIn credits → hit limit → upgrade to premium
+7. Test customer portal (change payment, cancel subscription)
+8. Test failed payment (card: 4000 0000 0000 0341)
+9. Test subscription cancellation → verify downgrade to free
+10. Test credit reset (manually trigger or set date to tomorrow and wait)
+11. Verify all webhook events logged correctly
+12. Test password reset flow
+13. Test "Remember me" functionality
+
+Build this complete authentication and subscription system. Make it production-ready, secure, and user-friendly.
