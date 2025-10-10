@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { Sparkles, Download, ArrowLeft } from "lucide-react";
+import { Sparkles, Download, ArrowLeft, Home, ChevronRight, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { InterviewQuestion } from "@/components/InterviewQuestion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card } from "@/components/ui/card";
 
 //todo: remove mock functionality
 const mockQuestions = {
@@ -81,6 +82,11 @@ const mockQuestions = {
 export default function InterviewPrep() {
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState("all");
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    setIsVisible(true);
+  }, []);
 
   const allQuestions = [
     ...mockQuestions.behavioral,
@@ -94,26 +100,44 @@ export default function InterviewPrep() {
     //todo: remove mock functionality - implement PDF generation with jsPDF
   };
 
+  const categoryStats = {
+    behavioral: mockQuestions.behavioral.length,
+    technical: mockQuestions.technical.length,
+    situational: mockQuestions.situational.length,
+    curveball: mockQuestions.curveball.length,
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Navbar */}
       <nav className="sticky top-0 z-50 backdrop-blur-lg border-b border-border bg-background/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <button
-              onClick={() => setLocation("/")}
-              className="flex items-center gap-2 hover-elevate rounded-lg px-3 py-2"
-              data-testid="button-home"
-            >
-              <Sparkles className="h-6 w-6 text-primary" />
-              <span className="text-xl font-bold bg-gradient-to-r from-primary to-chart-2 bg-clip-text text-transparent">
-                ResumeForge AI
-              </span>
-            </button>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setLocation("/")}
+                className="flex items-center gap-2 hover-elevate rounded-lg px-3 py-2 -ml-3"
+                data-testid="button-home"
+              >
+                <Sparkles className="h-6 w-6 text-primary" />
+                <span className="text-xl font-bold bg-gradient-to-r from-primary to-chart-2 bg-clip-text text-transparent">
+                  ResumeForge AI
+                </span>
+              </button>
+              <div className="hidden md:flex items-center gap-1 text-sm text-muted-foreground">
+                <Home className="h-4 w-4" />
+                <ChevronRight className="h-4 w-4" />
+                <button onClick={() => setLocation("/results")} className="hover:text-foreground transition-colors">
+                  Results
+                </button>
+                <ChevronRight className="h-4 w-4" />
+                <span className="text-foreground font-medium">Interview Prep</span>
+              </div>
+            </div>
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" onClick={handleDownloadPDF} data-testid="button-download-pdf">
                 <Download className="h-4 w-4 mr-2" />
-                Download PDF
+                Download
               </Button>
               <ThemeToggle />
             </div>
@@ -121,13 +145,14 @@ export default function InterviewPrep() {
         </div>
       </nav>
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8">
+      <div className={`max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8 transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
         {/* Header */}
         <div className="space-y-4">
           <Button
             variant="ghost"
             onClick={() => setLocation("/results")}
             data-testid="button-back"
+            className="hover-elevate"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Results
@@ -140,8 +165,29 @@ export default function InterviewPrep() {
           </div>
         </div>
 
+        {/* Category Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {Object.entries(categoryStats).map(([category, count], index) => (
+            <Card
+              key={category}
+              className="p-4 hover-elevate cursor-pointer transition-all"
+              onClick={() => setActiveTab(category)}
+              style={{ animationDelay: `${index * 100}ms` }}
+            >
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground capitalize">{category}</p>
+                <p className="text-2xl font-bold font-mono">{count}</p>
+              </div>
+            </Card>
+          ))}
+        </div>
+
         {/* Tabs for filtering */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <div className="flex items-center gap-2 mb-4">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium">Filter by category:</span>
+          </div>
           <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="all" data-testid="tab-all">All ({allQuestions.length})</TabsTrigger>
             <TabsTrigger value="behavioral" data-testid="tab-behavioral">Behavioral ({mockQuestions.behavioral.length})</TabsTrigger>
@@ -152,31 +198,61 @@ export default function InterviewPrep() {
 
           <TabsContent value="all" className="space-y-4 mt-6">
             {allQuestions.map((q, index) => (
-              <InterviewQuestion key={index} {...q} />
+              <div
+                key={index}
+                className="animate-in fade-in slide-in-from-bottom-4"
+                style={{ animationDelay: `${index * 50}ms`, animationDuration: '500ms' }}
+              >
+                <InterviewQuestion {...q} />
+              </div>
             ))}
           </TabsContent>
 
           <TabsContent value="behavioral" className="space-y-4 mt-6">
             {mockQuestions.behavioral.map((q, index) => (
-              <InterviewQuestion key={index} {...q} />
+              <div
+                key={index}
+                className="animate-in fade-in slide-in-from-bottom-4"
+                style={{ animationDelay: `${index * 100}ms`, animationDuration: '500ms' }}
+              >
+                <InterviewQuestion {...q} />
+              </div>
             ))}
           </TabsContent>
 
           <TabsContent value="technical" className="space-y-4 mt-6">
             {mockQuestions.technical.map((q, index) => (
-              <InterviewQuestion key={index} {...q} />
+              <div
+                key={index}
+                className="animate-in fade-in slide-in-from-bottom-4"
+                style={{ animationDelay: `${index * 100}ms`, animationDuration: '500ms' }}
+              >
+                <InterviewQuestion {...q} />
+              </div>
             ))}
           </TabsContent>
 
           <TabsContent value="situational" className="space-y-4 mt-6">
             {mockQuestions.situational.map((q, index) => (
-              <InterviewQuestion key={index} {...q} />
+              <div
+                key={index}
+                className="animate-in fade-in slide-in-from-bottom-4"
+                style={{ animationDelay: `${index * 100}ms`, animationDuration: '500ms' }}
+              >
+                <InterviewQuestion {...q} />
+              </div>
             ))}
           </TabsContent>
 
           <TabsContent value="curveball" className="space-y-4 mt-6">
             {mockQuestions.curveball.map((q, index) => (
-              <InterviewQuestion key={index} {...q} />
+              <div
+                key={index}
+                className="animate-in fade-in slide-in-from-bottom-4"
+                style={{ animationDelay: `${index * 100}ms`, animationDuration: '500ms' }}
+              >
+                <InterviewQuestion {...q} />
+              </div>
             ))}
           </TabsContent>
         </Tabs>

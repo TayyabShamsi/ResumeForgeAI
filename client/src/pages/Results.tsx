@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { Sparkles, FileText, Target, CheckCircle, TrendingUp, Download } from "lucide-react";
+import { Sparkles, FileText, Target, CheckCircle, TrendingUp, Download, Home, ArrowRight, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -10,6 +10,7 @@ import { ATSBadge } from "@/components/ATSBadge";
 import { RoastItem } from "@/components/RoastItem";
 import { KeywordCloud } from "@/components/KeywordCloud";
 import { BeforeAfterSection } from "@/components/BeforeAfterSection";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 //todo: remove mock functionality
 const mockData = {
@@ -43,6 +44,12 @@ const mockData = {
 export default function Results() {
   const [, setLocation] = useLocation();
   const [showPreview] = useState(false);
+  const [activeTab, setActiveTab] = useState("overview");
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    setIsVisible(true);
+  }, []);
 
   const handleGenerateQuestions = () => {
     console.log("Generating interview questions");
@@ -60,20 +67,27 @@ export default function Results() {
       <nav className="sticky top-0 z-50 backdrop-blur-lg border-b border-border bg-background/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <button
-              onClick={() => setLocation("/")}
-              className="flex items-center gap-2 hover-elevate rounded-lg px-3 py-2"
-              data-testid="button-home"
-            >
-              <Sparkles className="h-6 w-6 text-primary" />
-              <span className="text-xl font-bold bg-gradient-to-r from-primary to-chart-2 bg-clip-text text-transparent">
-                ResumeForge AI
-              </span>
-            </button>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setLocation("/")}
+                className="flex items-center gap-2 hover-elevate rounded-lg px-3 py-2 -ml-3"
+                data-testid="button-home"
+              >
+                <Sparkles className="h-6 w-6 text-primary" />
+                <span className="text-xl font-bold bg-gradient-to-r from-primary to-chart-2 bg-clip-text text-transparent">
+                  ResumeForge AI
+                </span>
+              </button>
+              <div className="hidden md:flex items-center gap-1 text-sm text-muted-foreground">
+                <Home className="h-4 w-4" />
+                <ChevronRight className="h-4 w-4" />
+                <span className="text-foreground font-medium">Results</span>
+              </div>
+            </div>
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" onClick={handleDownloadReport} data-testid="button-download-report">
                 <Download className="h-4 w-4 mr-2" />
-                Download Report
+                Download
               </Button>
               <ThemeToggle />
             </div>
@@ -81,7 +95,7 @@ export default function Results() {
         </div>
       </nav>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">
+      <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8 transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
         {/* Results Header */}
         <div className="text-center space-y-4">
           <h1 className="text-4xl font-bold">Your Resume Analysis</h1>
@@ -90,86 +104,124 @@ export default function Results() {
 
         {/* Score Dashboard */}
         <div className="grid md:grid-cols-3 gap-8 items-start">
-          <div className="flex justify-center">
+          <div className="flex justify-center animate-in fade-in slide-in-from-bottom-4 duration-700">
             <ScoreCircle score={mockData.score} />
           </div>
           <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <MetricCard
-              title="Sections Analyzed"
-              value={mockData.sectionsAnalyzed}
-              icon={FileText}
-              description="All major sections reviewed"
-            />
-            <MetricCard
-              title="Keywords Found"
-              value={mockData.keywordsFound}
-              icon={Target}
-              description="Matching job requirements"
-            />
-            <MetricCard
-              title="ATS Score"
-              value={`${mockData.atsScore}%`}
-              icon={CheckCircle}
-              description="Excellent compatibility"
-            />
-            <MetricCard
-              title="Improvement"
-              value={mockData.improvement}
-              icon={TrendingUp}
-              description="Potential score increase"
-            />
-          </div>
-        </div>
-
-        {/* ATS Status */}
-        <Card className="p-6">
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div className="space-y-1">
-              <h3 className="text-lg font-semibold">ATS Compatibility</h3>
-              <p className="text-sm text-muted-foreground">
-                Your resume will likely pass Applicant Tracking Systems
-              </p>
-            </div>
-            <ATSBadge passed={mockData.atsScore >= 70} score={mockData.atsScore} />
-          </div>
-        </Card>
-
-        {/* Roast Points */}
-        <div className="space-y-4">
-          <h2 className="text-2xl font-bold">The Roast</h2>
-          <div className="space-y-3">
-            {mockData.roasts.map((roast, index) => (
-              <RoastItem
+            {[
+              { title: "Sections Analyzed", value: mockData.sectionsAnalyzed, icon: FileText, description: "All major sections reviewed" },
+              { title: "Keywords Found", value: mockData.keywordsFound, icon: Target, description: "Matching job requirements" },
+              { title: "ATS Score", value: `${mockData.atsScore}%`, icon: CheckCircle, description: "Excellent compatibility" },
+              { title: "Improvement", value: mockData.improvement, icon: TrendingUp, description: "Potential score increase" }
+            ].map((metric, index) => (
+              <div
                 key={index}
-                type={roast.type}
-                text={roast.text}
-                explanation={roast.explanation}
-              />
+                className="animate-in fade-in slide-in-from-bottom-4"
+                style={{ animationDelay: `${index * 100}ms`, animationDuration: '700ms' }}
+              >
+                <MetricCard {...metric} />
+              </div>
             ))}
           </div>
         </div>
 
-        {/* Missing Keywords */}
-        <div className="space-y-4">
-          <div>
-            <h2 className="text-2xl font-bold mb-2">Missing Keywords</h2>
-            <p className="text-muted-foreground">Add these keywords to improve ATS compatibility</p>
-          </div>
-          <KeywordCloud keywords={mockData.missingKeywords} />
-        </div>
+        {/* Tabbed Content */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-4 max-w-2xl mx-auto">
+            <TabsTrigger value="overview" data-testid="tab-overview">Overview</TabsTrigger>
+            <TabsTrigger value="roast" data-testid="tab-roast">Feedback</TabsTrigger>
+            <TabsTrigger value="keywords" data-testid="tab-keywords">Keywords</TabsTrigger>
+            <TabsTrigger value="improvements" data-testid="tab-improvements">Improvements</TabsTrigger>
+          </TabsList>
 
-        {/* Before/After Sections */}
-        <div className="space-y-8">
-          <h2 className="text-2xl font-bold">Suggested Improvements</h2>
-          {mockData.beforeAfter.map((section, index) => (
-            <BeforeAfterSection
-              key={index}
-              title={section.title}
-              before={section.before}
-              after={section.after}
-            />
-          ))}
-        </div>
+          <TabsContent value="overview" className="space-y-6">
+            <Card className="p-6 hover-elevate transition-all">
+              <div className="flex items-center justify-between flex-wrap gap-4">
+                <div className="space-y-1">
+                  <h3 className="text-lg font-semibold">ATS Compatibility</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Your resume will likely pass Applicant Tracking Systems
+                  </p>
+                </div>
+                <ATSBadge passed={mockData.atsScore >= 70} score={mockData.atsScore} />
+              </div>
+            </Card>
+
+            <div className="grid md:grid-cols-2 gap-6">
+              <Card className="p-6 space-y-4 hover-elevate transition-all">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <CheckCircle className="h-5 w-5 text-chart-3" />
+                  Strengths
+                </h3>
+                <ul className="space-y-2">
+                  {mockData.roasts.filter(r => r.type === 'strength').map((roast, index) => (
+                    <li key={index} className="text-sm flex items-start gap-2">
+                      <span className="text-chart-3 mt-1">✓</span>
+                      <span>{roast.text}</span>
+                    </li>
+                  ))}
+                </ul>
+              </Card>
+
+              <Card className="p-6 space-y-4 hover-elevate transition-all">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <Target className="h-5 w-5 text-destructive" />
+                  Areas to Improve
+                </h3>
+                <ul className="space-y-2">
+                  {mockData.roasts.filter(r => r.type === 'criticism').map((roast, index) => (
+                    <li key={index} className="text-sm flex items-start gap-2">
+                      <span className="text-destructive mt-1">•</span>
+                      <span>{roast.text}</span>
+                    </li>
+                  ))}
+                </ul>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="roast" className="space-y-4">
+            {mockData.roasts.map((roast, index) => (
+              <div
+                key={index}
+                className="animate-in fade-in slide-in-from-left-4"
+                style={{ animationDelay: `${index * 100}ms`, animationDuration: '500ms' }}
+              >
+                <RoastItem
+                  type={roast.type}
+                  text={roast.text}
+                  explanation={roast.explanation}
+                />
+              </div>
+            ))}
+          </TabsContent>
+
+          <TabsContent value="keywords" className="space-y-4">
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold mb-4">Missing Keywords</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Add these keywords to improve ATS compatibility and match job requirements
+              </p>
+              <KeywordCloud keywords={mockData.missingKeywords} />
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="improvements" className="space-y-8">
+            {mockData.beforeAfter.map((section, index) => (
+              <div
+                key={index}
+                className="animate-in fade-in slide-in-from-bottom-4"
+                style={{ animationDelay: `${index * 150}ms`, animationDuration: '600ms' }}
+              >
+                <BeforeAfterSection
+                  title={section.title}
+                  before={section.before}
+                  after={section.after}
+                />
+              </div>
+            ))}
+          </TabsContent>
+        </Tabs>
 
         {/* Resume Preview (Optional) */}
         {showPreview && (
@@ -185,7 +237,7 @@ export default function Results() {
         )}
 
         {/* Generate Interview Questions CTA */}
-        <Card className="p-8 bg-gradient-to-br from-primary/10 via-background to-chart-2/10 border-primary/20">
+        <Card className="p-8 bg-gradient-to-br from-primary/10 via-background to-chart-2/10 border-primary/20 hover-elevate transition-all">
           <div className="text-center space-y-4">
             <h2 className="text-2xl font-bold">Ready for the Interview?</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
@@ -194,11 +246,12 @@ export default function Results() {
             <Button
               onClick={handleGenerateQuestions}
               size="lg"
-              className="shadow-lg shadow-primary/25"
+              className="shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-all"
               data-testid="button-generate-questions"
             >
               <Sparkles className="mr-2 h-5 w-5" />
               Generate Interview Questions
+              <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
           </div>
         </Card>
