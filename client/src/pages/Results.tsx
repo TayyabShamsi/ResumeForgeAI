@@ -119,13 +119,13 @@ export default function Results() {
             <div className="grid md:grid-cols-2 gap-6">
               <Card className="p-6 space-y-4 hover-elevate transition-all">
                 <h3 className="text-lg font-semibold flex items-center gap-2">
-                  <CheckCircle className="h-5 w-5 text-chart-3" />
+                  <CheckCircle className="h-5 w-5 text-success" />
                   Strengths
                 </h3>
                 <ul className="space-y-2">
                   {mockData.roasts.filter(r => r.type === 'strength').map((roast, index) => (
                     <li key={index} className="text-sm flex items-start gap-2">
-                      <span className="text-chart-3 mt-1">✓</span>
+                      <span className="text-success mt-1">✓</span>
                       <span>{roast.text}</span>
                     </li>
                   ))}

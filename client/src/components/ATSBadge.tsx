@@ -12,7 +12,7 @@ export function ATSBadge({ passed, score }: ATSBadgeProps) {
       variant={passed ? "outline" : "outline"}
       className={
         passed
-          ? "border-chart-3 text-chart-3 gap-1.5"
+          ? "border-success text-success gap-1.5"
           : "border-destructive text-destructive gap-1.5"
       }
       data-testid="badge-ats"

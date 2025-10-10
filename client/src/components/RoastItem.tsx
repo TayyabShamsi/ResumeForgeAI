@@ -13,7 +13,7 @@ export function RoastItem({ text, type, explanation }: RoastItemProps) {
         {type === "criticism" ? (
           <Flame className="h-5 w-5 text-destructive" />
         ) : (
-          <Sparkles className="h-5 w-5 text-chart-3" />
+          <Sparkles className="h-5 w-5 text-success" />
         )}
       </div>
       <div className="flex-1">

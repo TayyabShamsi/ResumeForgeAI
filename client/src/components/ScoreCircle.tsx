@@ -31,8 +31,8 @@ export function ScoreCircle({ score, size = 200 }: ScoreCircleProps) {
   }, [score]);
 
   const getScoreColor = () => {
-    if (score >= 80) return "hsl(var(--chart-3))";
-    if (score >= 60) return "hsl(var(--chart-4))";
+    if (score >= 80) return "hsl(var(--success))";
+    if (score >= 60) return "hsl(var(--warning))";
     return "hsl(var(--destructive))";
   };
 
