@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import multer from "multer";
 import mammoth from "mammoth";
+import rateLimit from "express-rate-limit";
 import { 
   analyzeResume, 
   generateInterviewQuestions, 
@@ -16,7 +17,19 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
 });
 
+// Rate limiter: 10 requests per IP per hour
+const apiLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 10, // 10 requests per window
+  message: { error: "Too many requests. Please try again in an hour." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 export async function registerRoutes(app: Express): Promise<Server> {
+  
+  // Apply rate limiting to all API routes
+  app.use("/api/", apiLimiter);
   
   // Resume analysis endpoint
   app.post("/api/analyze-resume", upload.single("resume"), async (req, res) => {
@@ -93,9 +106,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Profile URL or content is required" });
       }
 
-      // For now, use the provided content directly
-      // In future, could scrape the URL
-      const content = profileContent || `Profile URL: ${profileUrl}`;
+      let content = profileContent;
+
+      // If URL provided and no content, scrape with ScrapingDog API
+      if (profileUrl && !profileContent) {
+        try {
+          const scrapingDogKey = process.env.SCRAPINGDOG_API_KEY;
+          if (!scrapingDogKey) {
+            return res.status(400).json({ 
+              error: "ScrapingDog API key not configured. Please paste profile content instead." 
+            });
+          }
+
+          const scrapingUrl = `https://api.scrapingdog.com/linkedin/profile?api_key=${scrapingDogKey}&url=${encodeURIComponent(profileUrl)}`;
+          
+          const scrapingResponse = await fetch(scrapingUrl);
+          const scrapingData = await scrapingResponse.json();
+
+          if (!scrapingResponse.ok) {
+            throw new Error(scrapingData.error || "Failed to scrape LinkedIn profile");
+          }
+
+          // Extract relevant profile data
+          const profile = scrapingData;
+          content = `
+Headline: ${profile.headline || "Not found"}
+
+About: ${profile.about || "Not found"}
+
+Experience: ${profile.experience?.map((exp: any) => 
+  `${exp.title} at ${exp.company} (${exp.duration}): ${exp.description || ""}`
+).join("\n\n") || "Not found"}
+
+Skills: ${profile.skills?.join(", ") || "Not found"}
+
+Education: ${profile.education?.map((edu: any) => 
+  `${edu.degree} from ${edu.school}`
+).join(", ") || "Not found"}
+          `.trim();
+
+        } catch (scrapingError: any) {
+          console.error("LinkedIn scraping error:", scrapingError);
+          return res.status(400).json({ 
+            error: "Failed to scrape LinkedIn URL. Please paste your profile content instead." 
+          });
+        }
+      }
       
       const optimization = await optimizeLinkedIn(content);
       
