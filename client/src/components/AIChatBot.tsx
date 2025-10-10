@@ -118,32 +118,37 @@ export function AIChatBot() {
       </Button>
 
       {/* Chat Window */}
-      <Card
+      <div
         className={cn(
-          "fixed bottom-6 right-6 z-50 w-[380px] h-[600px] flex flex-col shadow-2xl transition-all duration-300",
+          "fixed bottom-6 right-6 z-50 transition-all duration-300",
           isOpen ? "scale-100 opacity-100" : "scale-0 opacity-0 pointer-events-none"
         )}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-border bg-gradient-to-r from-primary/10 to-chart-2/10">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/20">
-              <Sparkles className="h-5 w-5 text-primary" />
+        <Card className="w-[380px] h-[600px] flex flex-col shadow-2xl">
+          {/* Header */}
+          <div className="flex items-center justify-between p-4 border-b border-border bg-gradient-to-r from-primary/10 to-chart-2/10 relative z-10">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/20">
+                <Sparkles className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-semibold">Interview Coach</h3>
+                <p className="text-xs text-muted-foreground">Your AI interview partner</p>
+              </div>
             </div>
-            <div>
-              <h3 className="font-semibold">Interview Coach</h3>
-              <p className="text-xs text-muted-foreground">Your AI interview partner</p>
-            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsOpen(false);
+              }}
+              data-testid="button-chat-close"
+              className="relative z-20"
+            >
+              <X className="h-5 w-5" />
+            </Button>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setIsOpen(false)}
-            data-testid="button-chat-close"
-          >
-            <X className="h-5 w-5" />
-          </Button>
-        </div>
 
         {/* Messages */}
         <ScrollArea className="flex-1 p-4" ref={scrollRef}>
@@ -222,7 +227,8 @@ export function AIChatBot() {
             </Button>
           </div>
         </div>
-      </Card>
+        </Card>
+      </div>
     </>
   );
 }

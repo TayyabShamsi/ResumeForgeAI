@@ -1,4 +1,4 @@
-import { Home, FileText, MessageSquare, Sparkles } from "lucide-react";
+import { Home, FileText, MessageSquare, Sparkles, Linkedin, FileEdit } from "lucide-react";
 import { useLocation } from "wouter";
 import {
   Sidebar,
@@ -13,12 +13,12 @@ import {
 
 const menuItems = [
   {
-    title: "Upload",
+    title: "Upload Resume",
     url: "/",
     icon: Home,
   },
   {
-    title: "Results",
+    title: "Resume Analysis",
     url: "/results",
     icon: FileText,
   },
@@ -26,6 +26,16 @@ const menuItems = [
     title: "Interview Prep",
     url: "/interview-prep",
     icon: MessageSquare,
+  },
+  {
+    title: "LinkedIn Profile",
+    url: "/linkedin",
+    icon: Linkedin,
+  },
+  {
+    title: "Cover Letter",
+    url: "/cover-letter",
+    icon: FileEdit,
   },
 ];
 

@@ -8,6 +8,8 @@ import { NavigationWrapper } from "@/components/NavigationWrapper";
 import Home from "@/pages/Home";
 import Results from "@/pages/Results";
 import InterviewPrep from "@/pages/InterviewPrep";
+import LinkedInProfile from "@/pages/LinkedIn";
+import CoverLetter from "@/pages/CoverLetter";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -16,6 +18,8 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/results" component={Results} />
       <Route path="/interview-prep" component={InterviewPrep} />
+      <Route path="/linkedin" component={LinkedInProfile} />
+      <Route path="/cover-letter" component={CoverLetter} />
       <Route component={NotFound} />
     </Switch>
   );

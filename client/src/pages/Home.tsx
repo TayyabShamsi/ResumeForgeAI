@@ -12,15 +12,23 @@ import heroImage from "@assets/stock_images/professional_person__1f6a5b7f.jpg";
 export default function Home() {
   const [, setLocation] = useLocation();
   const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const [resumeText, setResumeText] = useState("");
   const [jobDescription, setJobDescription] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [loadingMessage, setLoadingMessage] = useState("");
+  const [showPasteOption, setShowPasteOption] = useState(false);
+
+  const MAX_RESUME_LENGTH = 10000;
 
   const handleRoast = () => {
-    if (!resumeFile) return;
+    if (!resumeFile && !resumeText.trim()) return;
     
-    console.log("Roasting resume:", resumeFile.name);
+    if (resumeFile) {
+      console.log("Roasting resume:", resumeFile.name);
+    } else {
+      console.log("Roasting pasted resume text");
+    }
     console.log("Job description:", jobDescription);
     
     //todo: remove mock functionality - simulate loading with progress
@@ -88,7 +96,7 @@ export default function Home() {
           <div className="text-center space-y-6 mb-8 md:mb-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/20 border border-primary/30 text-sm font-medium text-primary backdrop-blur-sm">
               <Sparkles className="h-4 w-4" />
-              Powered by Google Gemini AI
+              AI-Powered Career Tools
             </div>
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight">
               Get Your Resume{" "}
@@ -102,37 +110,117 @@ export default function Home() {
           </div>
 
           <div className="max-w-3xl mx-auto space-y-4 md:space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
-            <Card className="p-1 bg-card/50 backdrop-blur-sm border-primary/20">
-              <UploadZone
-                onFileSelect={setResumeFile}
-                isLoading={isLoading}
-              />
-            </Card>
+            <div className="flex gap-2 justify-center">
+              <Button
+                variant={!showPasteOption ? "default" : "outline"}
+                size="sm"
+                onClick={() => {
+                  setShowPasteOption(false);
+                  setResumeText("");
+                }}
+                data-testid="button-upload-option"
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                Upload File
+              </Button>
+              <Button
+                variant={showPasteOption ? "default" : "outline"}
+                size="sm"
+                onClick={() => {
+                  setShowPasteOption(true);
+                  setResumeFile(null);
+                }}
+                data-testid="button-paste-option"
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                Paste Text
+              </Button>
+            </div>
 
-            {resumeFile && !isLoading && (
+            {!showPasteOption ? (
+              <Card className="p-1 bg-card/50 backdrop-blur-sm border-primary/20">
+                <UploadZone
+                  onFileSelect={setResumeFile}
+                  isLoading={isLoading}
+                />
+              </Card>
+            ) : (
+              <Card className="p-4 bg-card/50 backdrop-blur-sm border-primary/20">
+                <Textarea
+                  placeholder="Paste your resume text here (max 10,000 characters)..."
+                  value={resumeText}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value.length > MAX_RESUME_LENGTH) {
+                      setResumeText(value.substring(0, MAX_RESUME_LENGTH));
+                    } else {
+                      setResumeText(value);
+                    }
+                  }}
+                  rows={12}
+                  className="resize-none font-mono text-sm"
+                  data-testid="textarea-resume-paste"
+                />
+                <p className="text-xs text-muted-foreground mt-2">
+                  {resumeText.length} / {MAX_RESUME_LENGTH} characters
+                  {resumeText.length >= MAX_RESUME_LENGTH && (
+                    <span className="text-amber-500 ml-2">(limit reached)</span>
+                  )}
+                </p>
+              </Card>
+            )}
+
+            {(resumeFile || resumeText.trim()) && !isLoading && (
               <div className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-500">
-                <Card className="p-4 hover-elevate">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-primary/10">
-                      <FileText className="h-5 w-5 text-primary" />
+                {resumeFile && (
+                  <Card className="p-4 hover-elevate">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-primary/10">
+                        <FileText className="h-5 w-5 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{resumeFile.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {(resumeFile.size / 1024).toFixed(1)} KB
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setResumeFile(null)}
+                        data-testid="button-remove-file"
+                        className="flex-shrink-0"
+                      >
+                        Remove
+                      </Button>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{resumeFile.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {(resumeFile.size / 1024).toFixed(1)} KB
-                      </p>
+                  </Card>
+                )}
+                
+                {resumeText.trim() && (
+                  <Card className="p-4 hover-elevate">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-primary/10">
+                        <FileText className="h-5 w-5 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium">Pasted Resume Text</p>
+                        <p className="text-xs text-muted-foreground">
+                          {resumeText.length} characters
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setResumeText("")}
+                        data-testid="button-remove-text"
+                        className="flex-shrink-0"
+                      >
+                        Clear
+                      </Button>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setResumeFile(null)}
-                      data-testid="button-remove-file"
-                      className="flex-shrink-0"
-                    >
-                      Remove
-                    </Button>
-                  </div>
-                </Card>
+                  </Card>
+                )}
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium flex items-center gap-2">
@@ -209,7 +297,7 @@ export default function Home() {
       {/* Footer */}
       <footer className="border-t border-border py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm text-muted-foreground">
-          <p>© 2025 ResumeForge AI. Powered by Google Gemini AI.</p>
+          <p>© 2025 ResumeForge AI. AI-Powered Career Tools.</p>
         </div>
       </footer>
       </div>
