@@ -1,0 +1,437 @@
+Add complete Stripe-based subscription and credit management system to ResumeForge AI. User authentication is already implemented.
+
+=== PRICING TIERS ===
+
+FREE TIER (default for all users):
+- 5 resume analyses per month
+- 2 interview question sets per month
+- 1 LinkedIn optimization per month
+- Basic ATS scan
+- Watermarked PDF exports
+- Store 1 resume maximum
+- Credits reset on 1st of each month
+
+PRO TIER - $4.99/month or $49/year:
+- Unlimited resume analyses
+- Unlimited interview questions
+- 10 LinkedIn optimizations per month
+- Unlimited cover letters
+- Advanced ATS scanner with detailed fixes
+- No watermarks on exports
+- Store 5 resumes
+- Priority AI processing
+- "PRO" badge displayed
+
+PREMIUM TIER - $9.99/month or $99/year:
+- Everything in Pro
+- Unlimited LinkedIn optimizations
+- Resume version comparison tool
+- Job match compatibility scorer
+- 10+ premium resume templates
+- Career tips newsletter
+- Priority email support
+- Store unlimited resumes
+- "PREMIUM" badge
+
+=== DATABASE SCHEMA UPDATES ===
+
+Update the users table with these additional columns:
+- subscription_tier (string: 'free', 'pro', 'premium', default: 'free')
+- subscription_status (string: 'active', 'cancelled', 'past_due', 'trialing', default: 'active')
+- stripe_customer_id (string, nullable)
+- stripe_subscription_id (string, nullable)
+- credits_remaining (JSON: { "resume": 5, "interview": 2, "linkedin": 1 })
+- credits_reset_date (timestamp - set to 1st of next month on signup)
+
+Create new table: subscription_history
+- id (primary key)
+- user_id (foreign key to users)
+- event_type (string: 'subscribed', 'cancelled', 'upgraded', 'downgraded', 'renewed')
+- from_tier (string)
+- to_tier (string)
+- amount_paid (decimal)
+- stripe_invoice_id (string, nullable)
+- timestamp (timestamp)
+
+Update resumes table (if exists):
+- Add constraint based on user tier: 1 for free, 5 for pro, unlimited for premium
+
+=== STRIPE SETUP ===
+
+First, create these products in your Stripe dashboard:
+- Product 1: "ResumeForge Pro"
+  * Price 1: $4.99/month (recurring monthly)
+  * Price 2: $49/year (recurring yearly)
+- Product 2: "ResumeForge Premium"
+  * Price 3: $9.99/month (recurring monthly)
+  * Price 4: $99/year (recurring yearly)
+
+Save the Price IDs from Stripe - you'll need them in the code.
+
+=== BACKEND STRIPE ROUTES ===
+
+Create these API endpoints:
+
+1. POST /api/stripe/create-checkout-session (protected route - requires auth):
+
+Input: { tier: 'pro_monthly' | 'pro_yearly' | 'premium_monthly' | 'premium_yearly' }
+
+Logic:
+- Get authenticated user from request
+- Map tier to Stripe Price ID:
+  * pro_monthly → your_stripe_price_id_1
+  * pro_yearly → your_stripe_price_id_2
+  * premium_monthly → your_stripe_price_id_3
+  * premium_yearly → your_stripe_price_id_4
+- Check if user has stripe_customer_id:
+  * If NO: create new Stripe customer with user's email
+  * Save stripe_customer_id to user record
+  * If YES: use existing stripe_customer_id
+- Create Stripe checkout session:
+  * mode: 'subscription'
+  * customer: stripe_customer_id
+  * line_items: [{ price: selected_price_id, quantity: 1 }]
+  * success_url: 'https://your-domain.com/success?session_id={CHECKOUT_SESSION_ID}'
+  * cancel_url: 'https://your-domain.com/pricing'
+  * metadata: { user_id: user.id, tier: selected_tier }
+- Return: { checkout_url: session.url }
+
+2. POST /api/stripe/webhook (PUBLIC - no auth required):
+
+CRITICAL: Verify Stripe webhook signature using stripe.webhooks.constructEvent()
+- Use STRIPE_WEBHOOK_SECRET from environment variables
+- If signature invalid: return 400 error
+
+Handle these webhook events:
+
+EVENT: checkout.session.completed
+- Extract: customer_id, subscription_id, metadata
+- Find user by stripe_customer_id
+- Determine tier from metadata or line items
+- Update user record:
+  * subscription_tier = 'pro' or 'premium'
+  * subscription_status = 'active'
+  * stripe_subscription_id = subscription_id
+  * If PRO: credits_remaining = { "resume": -1, "interview": -1, "linkedin": 10 } (-1 means unlimited)
+  * If PREMIUM: credits_remaining = { "resume": -1, "interview": -1, "linkedin": -1 }
+- Insert into subscription_history:
+  * event_type = 'subscribed'
+  * from_tier = 'free'
+  * to_tier = determined tier
+  * amount_paid = session.amount_total / 100
+  * stripe_invoice_id = session.invoice (if available)
+- Send welcome email (optional)
+
+EVENT: invoice.payment_succeeded
+- Extract: subscription_id
+- Find user by stripe_subscription_id
+- Keep subscription_status = 'active'
+- If user is PRO tier: reset linkedin credits to 10
+- Insert into subscription_history:
+  * event_type = 'renewed'
+  * amount_paid = invoice.amount_paid / 100
+  * stripe_invoice_id = invoice.id
+
+EVENT: invoice.payment_failed
+- Extract: subscription_id
+- Find user by stripe_subscription_id
+- Update: subscription_status = 'past_due'
+- Send payment failed email notification
+
+EVENT: customer.subscription.updated
+- Handle plan changes (upgrade/downgrade)
+- Extract: subscription_id, items
+- Find user by stripe_subscription_id
+- Determine new tier from subscription items
+- Update user record with new tier
+- Adjust credits accordingly
+- Insert into subscription_history: event_type = 'upgraded' or 'downgraded'
+
+EVENT: customer.subscription.deleted
+- Extract: subscription_id
+- Find user by stripe_subscription_id
+- Downgrade user:
+  * subscription_tier = 'free'
+  * subscription_status = 'cancelled'
+  * stripe_subscription_id = null
+  * credits_remaining = { "resume": 5, "interview": 2, "linkedin": 1 }
+  * credits_reset_date = 1st of next month
+- Insert into subscription_history: event_type = 'cancelled'
+- Send cancellation confirmation email
+
+Return 200 OK for all webhook events (even if processing fails - log errors separately)
+
+3. GET /api/stripe/customer-portal (protected route - requires auth):
+
+Logic:
+- Get authenticated user
+- Check if user has stripe_customer_id
+- If NO: return error "No subscription found"
+- If YES: create Stripe billing portal session:
+  * customer: stripe_customer_id
+  * return_url: 'https://your-domain.com/settings'
+- Return: { portal_url: session.url }
+
+This portal lets users:
+- Update payment method
+- Cancel subscription
+- View invoices
+- Change billing info
+
+=== CREDIT MANAGEMENT MIDDLEWARE ===
+
+Create three middleware functions to check and deduct credits:
+
+Middleware 1: checkResumeCredits
+- Extract user from authentication
+- Check subscription_tier:
+  * If 'pro' or 'premium': allow (unlimited)
+  * If 'free':
+    - Check if credits_remaining.resume > 0
+    - If YES: deduct 1 credit, update user, allow request
+    - If NO: return 403 error with JSON:
+      {
+        "error": "No credits remaining",
+        "message": "You've used all 5 free resume analyses this month. Upgrade to Pro for unlimited access!",
+        "upgrade_url": "/pricing",
+        "credits_reset_date": user.credits_reset_date
+      }
+
+Middleware 2: checkInterviewCredits
+- Same logic as resume credits but for interview credits (2 for free tier)
+
+Middleware 3: checkLinkedInCredits
+- Check subscription_tier:
+  * If 'premium': allow (unlimited)
+  * If 'pro': 
+    - Check if credits_remaining.linkedin > 0 AND <= 10
+    - Deduct 1 if available
+    - If exhausted: return error "Upgrade to Premium for unlimited LinkedIn scans"
+  * If 'free':
+    - Check if credits_remaining.linkedin > 0 AND <= 1
+    - Deduct 1 if available
+    - If exhausted: paywall prompt
+
+Apply middleware to routes:
+- POST /api/resume/analyze → add checkResumeCredits middleware
+- POST /api/interview/generate → add checkInterviewCredits middleware
+- POST /api/linkedin/optimize → add checkLinkedInCredits middleware
+
+=== MONTHLY CREDIT RESET ===
+
+Create scheduled job (cron or similar) that runs at 00:00 on 1st of every month:
+
+Logic:
+- Find all users where subscription_tier = 'free'
+- For each user:
+  * Reset credits_remaining = { "resume": 5, "interview": 2, "linkedin": 1 }
+  * Update credits_reset_date = 1st of next month
+- Find all users where subscription_tier = 'pro'
+- For each user:
+  * Reset credits_remaining.linkedin = 10 (keep others unlimited)
+- Send "credits refreshed" email to free users
+
+=== FRONTEND IMPLEMENTATION ===
+
+1. PRICING PAGE (/pricing):
+
+Create 3-column comparison table:
+
+Column 1 - FREE:
+- Title: "Starter"
+- Price: "$0/month"
+- Features list:
+  ✓ 5 resume analyses/month
+  ✓ 2 interview preps/month
+  ✓ 1 LinkedIn scan/month
+  ✓ Basic ATS checker
+  ✗ Watermarked exports
+- Button: "Start Free" → redirects to /signup
+
+Column 2 - PRO (add "Most Popular" badge):
+- Title: "Professional"
+- Toggle: Monthly ($4.99) / Yearly ($49 - Save $10!)
+- Features list:
+  ✓ Unlimited resumes
+  ✓ Unlimited interview prep
+  ✓ 10 LinkedIn scans/month
+  ✓ Unlimited cover letters
+  ✓ Advanced ATS scanner
+  ✓ No watermarks
+  ✓ PRO badge
+- Button: "Upgrade to Pro" → calls create-checkout-session API
+
+Column 3 - PREMIUM:
+- Title: "Career Pro"
+- Toggle: Monthly ($9.99) / Yearly ($99 - Save $20!)
+- Features list:
+  ✓ Everything in Pro
+  ✓ Unlimited LinkedIn scans
+  ✓ Resume comparison
+  ✓ Job match scorer
+  ✓ Premium templates
+  ✓ Priority support
+- Button: "Upgrade to Premium" → calls create-checkout-session API
+
+On button click:
+- Call POST /api/stripe/create-checkout-session with selected tier
+- Get checkout_url from response
+- Redirect user to Stripe checkout: window.location.href = checkout_url
+
+Below pricing table:
+- Add 3-4 testimonials
+- FAQ accordion with 5-6 questions
+- "30-day money-back guarantee" badge
+
+2. UPDATE DASHBOARD (/dashboard):
+
+Add subscription info card at top:
+
+For FREE users:
+- Badge: "FREE PLAN" (gray color)
+- Credits display with progress bars:
+  * "Resume Analyses: 3/5 remaining"
+  * "Interview Preps: 1/2 remaining"
+  * "LinkedIn Scans: 0/1 remaining"
+- Show reset date: "Credits reset on December 1, 2025"
+- Large "Upgrade to Pro" button with gradient
+- Small text: "Get unlimited access for just $4.99/month"
+
+For PRO users:
+- Badge: "PRO MEMBER" (blue color with ✨ icon)
+- Show: "Unlimited Resume & Interview Analyses"
+- Show LinkedIn credits: "LinkedIn Scans: 7/10 this month"
+- "Manage Subscription" button → opens Stripe customer portal
+- "Upgrade to Premium" upsell (smaller, less prominent)
+
+For PREMIUM users:
+- Badge: "PREMIUM MEMBER" (gold color with 👑 icon)
+- Show: "Unlimited Access to All Features"
+- "Manage Subscription" button
+
+3. PAYWALL MODALS:
+
+When user hits credit limit, show modal overlay:
+- Semi-transparent dark background (blocks interaction)
+- Modal card in center:
+  * Icon: 🚀 or 💎
+  * Title: "You've Used All Your Free [Feature] Credits!"
+  * Message: "Upgrade to Pro to get unlimited [feature] analyses and so much more."
+  * Feature comparison mini-table (Free vs Pro)
+  * Price: "Only $4.99/month"
+  * Primary button: "Upgrade Now" → redirects to /pricing
+  * Secondary button: "Maybe Later" → closes modal
+  * Small text: "Your credits reset on [date]"
+
+For Pro users hitting LinkedIn limit:
+- Similar modal but: "Upgrade to Premium for Unlimited LinkedIn Scans"
+- Show: "Only $5 more/month gets you unlimited LinkedIn + premium templates"
+
+4. SETTINGS PAGE - SUBSCRIPTION TAB:
+
+Current Subscription section:
+- Display tier badge prominently
+- Show status: "Active" (green), "Cancelled" (red), "Past Due" (yellow)
+- If active subscription:
+  * Show: "Next billing date: January 1, 2026"
+  * Show: "Current plan: Pro Monthly - $4.99/month"
+  * Button: "Manage Subscription" → opens Stripe customer portal in new tab
+- If free tier:
+  * Show: "You're on the free plan"
+  * Button: "Upgrade to Pro"
+
+Billing History section:
+- Table showing past payments:
+  * Date | Plan | Amount | Invoice
+- Each row has "View Invoice" link (opens Stripe invoice)
+- Fetch from subscription_history table
+
+5. SUCCESS PAGE (/success):
+
+When user returns from Stripe checkout:
+- Get session_id from URL query parameter
+- Verify session (optional: call Stripe API to confirm)
+- Show celebration:
+  * Confetti animation (use react-confetti or canvas-confetti)
+  * Headline: "Welcome to ResumeForge Pro!" (or Premium)
+  * Subtext: "Your subscription is now active"
+  * List of unlocked features with checkmarks
+  * Button: "Start Using Unlimited Features" → /dashboard
+
+6. CANCEL PAGE (/cancel):
+
+If user cancels during checkout:
+- Friendly message: "No problem! You're still on our Free plan."
+- Show what they're missing with Pro
+- Button: "Change Your Mind?" → /pricing
+- Button: "Back to Dashboard" → /dashboard
+
+=== SUBSCRIPTION BADGE IN NAVBAR ===
+
+Update navbar/header:
+- Next to user avatar/name, show small badge:
+  * "FREE" (gray)
+  * "PRO" (blue gradient)
+  * "PREMIUM" (gold gradient)
+- On hover: tooltip showing plan details
+
+=== ENVIRONMENT VARIABLES ===
+
+Add to .env file:
+- STRIPE_SECRET_KEY (from Stripe dashboard - use test key initially)
+- STRIPE_PUBLISHABLE_KEY (for frontend Stripe.js)
+- STRIPE_WEBHOOK_SECRET (from Stripe webhook settings)
+- STRIPE_PRICE_ID_PRO_MONTHLY
+- STRIPE_PRICE_ID_PRO_YEARLY
+- STRIPE_PRICE_ID_PREMIUM_MONTHLY
+- STRIPE_PRICE_ID_PREMIUM_YEARLY
+
+Create .env.example with placeholder values.
+
+=== TESTING IN STRIPE TEST MODE ===
+
+Use Stripe test mode initially:
+
+Test cards:
+- Success: 4242 4242 4242 4242 (any future expiry, any CVC)
+- Payment fails: 4000 0000 0000 0341
+- 3D Secure: 4000 0025 0000 3155
+
+Test flow:
+1. Signup as new user (starts with free tier, 5 credits)
+2. Analyze 5 resumes → hit paywall
+3. Click "Upgrade to Pro" → redirected to Stripe checkout
+4. Use test card 4242... → complete payment
+5. Redirected to /success page
+6. Check dashboard → should show PRO badge and unlimited credits
+7. Analyze 10 more resumes → should work without paywall
+8. Go to settings → click "Manage Subscription"
+9. Opens Stripe customer portal → test canceling subscription
+10. Webhook fires → user downgraded to free tier
+11. Verify credits reset to 5 resumes, 2 interviews, 1 LinkedIn
+
+Test webhooks locally:
+- Use Stripe CLI: stripe listen --forward-to localhost:3000/api/stripe/webhook
+- This creates a webhook signing secret for testing
+- Trigger test events: stripe trigger checkout.session.completed
+
+=== SECURITY CHECKLIST ===
+
+- ✓ Always verify Stripe webhook signatures
+- ✓ Never trust data from frontend - validate on backend
+- ✓ Store sensitive keys in environment variables
+- ✓ Use HTTPS only (Replit handles this)
+- ✓ Rate limit webhook endpoint (1000 req/hour)
+- ✓ Log all subscription events for debugging
+- ✓ Handle edge cases (user deletes account mid-subscription)
+
+=== ERROR HANDLING ===
+
+Handle these scenarios:
+- Stripe API is down: show "Payment system temporarily unavailable"
+- Webhook fails to process: implement retry logic
+- User tries to subscribe twice: prevent duplicate subscriptions
+- Payment fails during renewal: update status to 'past_due', send email
+- User cancels but has remaining time: keep access until period ends
+
+Build this complete Stripe subscription system. Make it production-ready, secure, and handle all edge cases gracefully.
