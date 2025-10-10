@@ -21,7 +21,14 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (October 10, 2025)
 
-### Latest Updates - FULLY FUNCTIONAL AI INTEGRATION
+### Latest Updates - PRODUCTION-READY ENHANCEMENTS
+- **LinkedIn URL Scraping**: Integrated ScrapingDog API to automatically extract profile data from LinkedIn URLs (headline, about, experience, skills, education)
+- **Rate Limiting**: Implemented 10 requests per IP per hour across all API endpoints to prevent abuse
+- **Response Caching**: Added intelligent in-memory caching with 5-minute TTL using SHA-256 hashing for unique cache keys
+- **Enhanced ATS Analysis**: AI now provides detailed formatting issues, keyword density metrics, and severity-based recommendations
+- **Improved Error Handling**: Context-aware error messages for API failures, rate limits, and parsing errors
+
+### Previous Updates - FULLY FUNCTIONAL AI INTEGRATION
 - **Real AI Integration Complete**: All features now use Google Gemini 2.0 Flash (experimental) model
   - Resume analysis with brutally honest feedback, ATS scoring, and improvement suggestions
   - AI-generated interview questions (behavioral, technical, situational)
