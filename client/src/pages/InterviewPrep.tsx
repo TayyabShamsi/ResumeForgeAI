@@ -154,6 +154,7 @@ export default function InterviewPrep() {
                 key={category}
                 className="p-6 hover-elevate cursor-pointer"
                 onClick={() => setActiveTab(category)}
+                data-testid={`card-category-${category}`}
               >
                 <p className="text-sm text-muted-foreground capitalize mb-1">{category}</p>
                 <p className="text-3xl font-bold">{count}</p>

@@ -14,6 +14,7 @@ import { PageTransition } from "@/components/PageTransition";
 import atsImage from "@assets/generated_images/ATS_compatibility_analysis_visualization_d3c39158.png";
 import keywordImage from "@assets/generated_images/Keyword_analysis_visualization_23ebf236.png";
 import improvementImage from "@assets/generated_images/Resume_improvement_visualization_3f91e291.png";
+import interviewImage from "@assets/generated_images/AI_interview_preparation_visualization_64de33b7.png";
 
 const mockData = {
   score: 72,
@@ -209,7 +210,7 @@ export default function Results() {
           {/* CTA Card with Interview Prep Image */}
           <Card className="relative overflow-hidden">
             <div className="absolute inset-0 opacity-15">
-              <img src={atsImage} alt="" className="w-full h-full object-cover" />
+              <img src={interviewImage} alt="" className="w-full h-full object-cover" />
             </div>
             <div className="relative p-12 text-center space-y-6">
               <h2 className="text-3xl font-bold">Ready for the Interview?</h2>
