@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { NavigationWrapper } from "@/components/NavigationWrapper";
 import Home from "@/pages/Home";
 import Results from "@/pages/Results";
 import InterviewPrep from "@/pages/InterviewPrep";
@@ -25,8 +26,10 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="dark">
         <TooltipProvider>
+          <NavigationWrapper>
+            <Router />
+          </NavigationWrapper>
           <Toaster />
-          <Router />
         </TooltipProvider>
       </ThemeProvider>
     </QueryClientProvider>

@@ -4,9 +4,9 @@ import { Sparkles, FileText, Zap, Target, CheckCircle2, ArrowRight } from "lucid
 import { UploadZone } from "@/components/UploadZone";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { PageTransition } from "@/components/PageTransition";
 
 export default function Home() {
   const [, setLocation] = useLocation();
@@ -68,29 +68,11 @@ export default function Home() {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Navbar */}
-      <nav className="sticky top-0 z-50 backdrop-blur-lg border-b border-border bg-background/80">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-2 hover-elevate rounded-lg px-3 py-2 -ml-3">
-              <Sparkles className="h-6 w-6 text-primary" />
-              <span className="text-xl font-bold bg-gradient-to-r from-primary to-chart-2 bg-clip-text text-transparent">
-                ResumeForge AI
-              </span>
-            </div>
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" size="sm" onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })}>
-                How it works
-              </Button>
-              <ThemeToggle />
-            </div>
-          </div>
-        </div>
-      </nav>
+    <PageTransition>
+      <div className="min-h-screen bg-background pb-20 md:pb-0">
 
       {/* Hero Section */}
-      <div className="relative min-h-[80vh] flex items-center justify-center overflow-hidden">
+      <div className="relative min-h-[calc(100vh-4rem)] flex items-center justify-center overflow-hidden">
         {/* Animated Gradient Background */}
         <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-background to-chart-2/20">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(124,58,237,0.1),transparent_50%)] animate-pulse" />
@@ -229,6 +211,7 @@ export default function Home() {
           <p>© 2025 ResumeForge AI. Powered by Google Gemini AI.</p>
         </div>
       </footer>
-    </div>
+      </div>
+    </PageTransition>
   );
 }

@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useLocation } from "wouter";
-import { Sparkles, Download, ArrowLeft, Home, ChevronRight, Filter } from "lucide-react";
+import { Download, ArrowLeft, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { InterviewQuestion } from "@/components/InterviewQuestion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
+import { PageTransition } from "@/components/PageTransition";
 
 //todo: remove mock functionality
 const mockQuestions = {
@@ -82,11 +82,6 @@ const mockQuestions = {
 export default function InterviewPrep() {
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState("all");
-  const [isVisible, setIsVisible] = useState(false);
-
-  useEffect(() => {
-    setIsVisible(true);
-  }, []);
 
   const allQuestions = [
     ...mockQuestions.behavioral,
@@ -108,64 +103,34 @@ export default function InterviewPrep() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Navbar */}
-      <nav className="sticky top-0 z-50 backdrop-blur-lg border-b border-border bg-background/80">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => setLocation("/")}
-                className="flex items-center gap-2 hover-elevate rounded-lg px-3 py-2 -ml-3"
-                data-testid="button-home"
+    <PageTransition>
+      <div className="min-h-screen bg-background pb-20 md:pb-0">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+          <div className="flex items-center justify-between">
+            <div className="space-y-2">
+              <Button
+                variant="ghost"
+                onClick={() => setLocation("/results")}
+                data-testid="button-back"
+                className="hover-elevate -ml-3"
               >
-                <Sparkles className="h-6 w-6 text-primary" />
-                <span className="text-xl font-bold bg-gradient-to-r from-primary to-chart-2 bg-clip-text text-transparent">
-                  ResumeForge AI
-                </span>
-              </button>
-              <div className="hidden md:flex items-center gap-1 text-sm text-muted-foreground">
-                <Home className="h-4 w-4" />
-                <ChevronRight className="h-4 w-4" />
-                <button onClick={() => setLocation("/results")} className="hover:text-foreground transition-colors">
-                  Results
-                </button>
-                <ChevronRight className="h-4 w-4" />
-                <span className="text-foreground font-medium">Interview Prep</span>
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Results
+              </Button>
+              <div>
+                <h1 className="text-3xl md:text-4xl font-bold">Interview Preparation</h1>
+                <p className="text-muted-foreground mt-1">
+                  {allQuestions.length} personalized questions based on your resume
+                </p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={handleDownloadPDF} data-testid="button-download-pdf">
-                <Download className="h-4 w-4 mr-2" />
-                Download
-              </Button>
-              <ThemeToggle />
-            </div>
+            <Button variant="outline" size="sm" onClick={handleDownloadPDF} data-testid="button-download-pdf">
+              <Download className="h-4 w-4 mr-2" />
+              Download
+            </Button>
           </div>
-        </div>
-      </nav>
 
-      <div className={`max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8 transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-        {/* Header */}
-        <div className="space-y-4">
-          <Button
-            variant="ghost"
-            onClick={() => setLocation("/results")}
-            data-testid="button-back"
-            className="hover-elevate"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Results
-          </Button>
-          <div>
-            <h1 className="text-4xl font-bold">Interview Preparation</h1>
-            <p className="text-lg text-muted-foreground mt-2">
-              {allQuestions.length} personalized questions based on your resume
-            </p>
-          </div>
-        </div>
-
-        {/* Category Stats */}
+          {/* Category Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {Object.entries(categoryStats).map(([category, count], index) => (
             <Card
@@ -256,7 +221,8 @@ export default function InterviewPrep() {
             ))}
           </TabsContent>
         </Tabs>
+        </div>
       </div>
-    </div>
+    </PageTransition>
   );
 }
