@@ -11,7 +11,9 @@ import { KeywordCloud } from "@/components/KeywordCloud";
 import { BeforeAfterSection } from "@/components/BeforeAfterSection";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageTransition } from "@/components/PageTransition";
-import analyticsImage from "@assets/stock_images/data_analytics_dashb_7db4b466.jpg";
+import atsImage from "@assets/generated_images/ATS_compatibility_analysis_visualization_d3c39158.png";
+import keywordImage from "@assets/generated_images/Keyword_analysis_visualization_23ebf236.png";
+import improvementImage from "@assets/generated_images/Resume_improvement_visualization_3f91e291.png";
 
 const mockData = {
   score: 72,
@@ -101,15 +103,21 @@ export default function Results() {
             </TabsList>
 
             <TabsContent value="overview" className="space-y-6">
-              <Card className="p-6 hover-elevate">
-                <div className="flex items-center justify-between flex-wrap gap-4">
-                  <div>
-                    <h3 className="text-xl font-semibold mb-1">ATS Compatibility</h3>
-                    <p className="text-muted-foreground">
-                      Your resume will likely pass Applicant Tracking Systems
-                    </p>
+              {/* ATS Section with Image */}
+              <Card className="relative overflow-hidden hover-elevate">
+                <div className="absolute right-0 top-0 bottom-0 w-1/3 opacity-20">
+                  <img src={atsImage} alt="" className="w-full h-full object-cover" />
+                </div>
+                <div className="relative p-6">
+                  <div className="flex items-center justify-between flex-wrap gap-4">
+                    <div>
+                      <h3 className="text-xl font-semibold mb-1">ATS Compatibility</h3>
+                      <p className="text-muted-foreground">
+                        Your resume will likely pass Applicant Tracking Systems
+                      </p>
+                    </div>
+                    <ATSBadge passed={mockData.atsScore >= 70} score={mockData.atsScore} />
                   </div>
-                  <ATSBadge passed={mockData.atsScore >= 70} score={mockData.atsScore} />
                 </div>
               </Card>
 
@@ -122,7 +130,7 @@ export default function Results() {
                   <ul className="space-y-3">
                     {mockData.roasts.filter(r => r.type === 'strength').map((roast, index) => (
                       <li key={index} className="flex items-start gap-2">
-                        <span className="text-success mt-0.5">✓</span>
+                        <CheckCircle className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                         <span className="text-sm">{roast.text}</span>
                       </li>
                     ))}
@@ -137,7 +145,7 @@ export default function Results() {
                   <ul className="space-y-3">
                     {mockData.roasts.filter(r => r.type === 'criticism').map((roast, index) => (
                       <li key={index} className="flex items-start gap-2">
-                        <span className="text-destructive mt-0.5">•</span>
+                        <span className="w-4 h-4 rounded-full bg-destructive/20 flex items-center justify-center text-destructive text-xs mt-0.5 flex-shrink-0">×</span>
                         <span className="text-sm">{roast.text}</span>
                       </li>
                     ))}
@@ -158,16 +166,35 @@ export default function Results() {
             </TabsContent>
 
             <TabsContent value="keywords" className="space-y-6">
-              <Card className="p-6">
-                <h3 className="text-xl font-semibold mb-3">Missing Keywords</h3>
-                <p className="text-muted-foreground mb-6">
-                  Add these keywords to improve ATS compatibility and match job requirements
-                </p>
-                <KeywordCloud keywords={mockData.missingKeywords} />
+              {/* Keywords Section with Image */}
+              <Card className="relative overflow-hidden">
+                <div className="absolute inset-0 opacity-10">
+                  <img src={keywordImage} alt="" className="w-full h-full object-cover" />
+                </div>
+                <div className="relative p-6">
+                  <h3 className="text-xl font-semibold mb-3">Missing Keywords</h3>
+                  <p className="text-muted-foreground mb-6">
+                    Add these keywords to improve ATS compatibility and match job requirements
+                  </p>
+                  <KeywordCloud keywords={mockData.missingKeywords} />
+                </div>
               </Card>
             </TabsContent>
 
             <TabsContent value="improvements" className="space-y-6">
+              {/* Improvements Header with Image */}
+              <Card className="relative overflow-hidden border-primary/20">
+                <div className="absolute inset-0 opacity-20">
+                  <img src={improvementImage} alt="" className="w-full h-full object-cover" />
+                </div>
+                <div className="relative p-6 text-center">
+                  <h3 className="text-2xl font-bold mb-2">Suggested Improvements</h3>
+                  <p className="text-muted-foreground">
+                    See how to transform weak statements into powerful achievements
+                  </p>
+                </div>
+              </Card>
+
               {mockData.beforeAfter.map((section, index) => (
                 <BeforeAfterSection
                   key={index}
@@ -179,10 +206,10 @@ export default function Results() {
             </TabsContent>
           </Tabs>
 
-          {/* CTA Card */}
+          {/* CTA Card with Interview Prep Image */}
           <Card className="relative overflow-hidden">
-            <div className="absolute inset-0 opacity-10">
-              <img src={analyticsImage} alt="" className="w-full h-full object-cover" />
+            <div className="absolute inset-0 opacity-15">
+              <img src={atsImage} alt="" className="w-full h-full object-cover" />
             </div>
             <div className="relative p-12 text-center space-y-6">
               <h2 className="text-3xl font-bold">Ready for the Interview?</h2>

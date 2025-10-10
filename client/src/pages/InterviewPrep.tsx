@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { PageTransition } from "@/components/PageTransition";
 import { AIChatBot } from "@/components/AIChatBot";
-import interviewImage from "@assets/stock_images/job_interview_profes_966e0eec.jpg";
+import interviewImage from "@assets/generated_images/AI_interview_preparation_visualization_64de33b7.png";
 
 const mockQuestions = {
   behavioral: [
@@ -105,14 +105,14 @@ export default function InterviewPrep() {
   return (
     <PageTransition>
       <div className="min-h-screen bg-background">
-        {/* Hero Header */}
-        <div className="relative h-48 overflow-hidden border-b">
+        {/* Hero Header with Custom Image */}
+        <div className="relative h-56 overflow-hidden border-b">
           <img 
             src={interviewImage} 
             alt="Interview preparation" 
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover opacity-40"
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-background/98 via-background/90 to-background/60" />
+          <div className="absolute inset-0 bg-gradient-to-br from-background/95 via-background/90 to-primary/20" />
           <div className="absolute inset-0 flex items-end pb-8">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
               <Button
