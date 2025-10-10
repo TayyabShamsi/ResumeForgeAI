@@ -1,9 +1,7 @@
-import { useState } from "react";
-import { Menu } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AppSidebar } from "@/components/AppSidebar";
 import { FloatingNav } from "@/components/FloatingNav";
+import { AIChatBot } from "@/components/AIChatBot";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 
 interface NavigationWrapperProps {
@@ -13,8 +11,8 @@ interface NavigationWrapperProps {
 
 export function NavigationWrapper({ children, showSidebar = true }: NavigationWrapperProps) {
   const style = {
-    "--sidebar-width": "20rem",
-    "--sidebar-width-icon": "4rem",
+    "--sidebar-width": "16rem",
+    "--sidebar-width-icon": "3rem",
   };
 
   if (!showSidebar) {
@@ -22,6 +20,7 @@ export function NavigationWrapper({ children, showSidebar = true }: NavigationWr
       <>
         {children}
         <FloatingNav />
+        <AIChatBot />
       </>
     );
   }
@@ -31,26 +30,8 @@ export function NavigationWrapper({ children, showSidebar = true }: NavigationWr
       <div className="flex h-screen w-full">
         <AppSidebar />
         <SidebarInset className="flex-1 flex flex-col">
-          <header className="sticky top-0 z-40 flex h-16 items-center justify-between gap-4 border-b border-border bg-background/95 backdrop-blur-lg px-4">
-            <div className="flex items-center gap-2">
-              <SidebarTrigger data-testid="button-sidebar-toggle" className="md:flex hidden">
-                <Menu className="h-5 w-5" />
-              </SidebarTrigger>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="md:hidden"
-                onClick={() => {
-                  const sidebar = document.querySelector('[data-sidebar="sidebar"]');
-                  if (sidebar) {
-                    sidebar.setAttribute('data-state', sidebar.getAttribute('data-state') === 'collapsed' ? 'expanded' : 'collapsed');
-                  }
-                }}
-                data-testid="button-mobile-menu"
-              >
-                <Menu className="h-5 w-5" />
-              </Button>
-            </div>
+          <header className="sticky top-0 z-40 flex h-14 items-center justify-between gap-4 border-b border-border bg-background/95 backdrop-blur-lg px-4">
+            <SidebarTrigger data-testid="button-sidebar-toggle" />
             <ThemeToggle />
           </header>
           <main className="flex-1 overflow-auto">
@@ -59,6 +40,7 @@ export function NavigationWrapper({ children, showSidebar = true }: NavigationWr
         </SidebarInset>
       </div>
       <FloatingNav />
+      <AIChatBot />
     </SidebarProvider>
   );
 }

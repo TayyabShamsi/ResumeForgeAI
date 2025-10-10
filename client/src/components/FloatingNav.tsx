@@ -29,8 +29,8 @@ export function FloatingNav() {
   return (
     <>
       {/* Bottom Navigation Bar - Mobile */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-lg border-t border-border">
-        <div className="grid grid-cols-3 gap-1 p-2">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-background/98 backdrop-blur-lg border-t border-border safe-area-bottom">
+        <div className="grid grid-cols-3 p-1.5">
           {navItems.map((item) => (
             <Button
               key={item.url}
@@ -38,13 +38,13 @@ export function FloatingNav() {
               size="sm"
               onClick={() => setLocation(item.url)}
               className={cn(
-                "flex flex-col gap-1 h-auto py-2 hover-elevate",
-                location === item.url && "bg-primary/10 text-primary"
+                "flex flex-col gap-0.5 h-auto py-2",
+                location === item.url && "text-primary"
               )}
               data-testid={`mobile-nav-${item.label.toLowerCase()}`}
             >
-              <item.icon className="h-5 w-5" />
-              <span className="text-xs font-medium">{item.label}</span>
+              <item.icon className={cn("h-5 w-5", location === item.url && "fill-primary/20")} />
+              <span className="text-[10px] font-medium">{item.label}</span>
             </Button>
           ))}
         </div>
@@ -55,7 +55,8 @@ export function FloatingNav() {
         <Button
           size="icon"
           onClick={scrollToTop}
-          className="fixed bottom-24 md:bottom-8 right-8 z-40 shadow-lg shadow-primary/25 rounded-full w-12 h-12"
+          variant="secondary"
+          className="hidden md:flex fixed bottom-24 right-24 z-40 shadow-lg rounded-full w-11 h-11"
           data-testid="button-scroll-top"
         >
           <ChevronUp className="h-5 w-5" />
