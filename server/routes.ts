@@ -24,6 +24,7 @@ import { authenticateSupabase } from "./auth-routes";
 import { db } from "./db";
 import { subscriptionHistory } from "../shared/schema";
 import { eq, desc } from "drizzle-orm";
+import { validateResumeFile, sanitizeFilename } from "./file-validator";
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -176,19 +177,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // User uploaded a file
         const buffer = req.file.buffer;
         const mimeType = req.file.mimetype;
+        const filename = req.file.originalname;
 
-        if (mimeType === "application/pdf") {
-          const pdfParse = (await import("pdf-parse")).default;
-          const pdfData = await pdfParse(buffer);
-          resumeText = pdfData.text;
-        } else if (
-          mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
-          mimeType === "application/msword"
-        ) {
-          const docData = await mammoth.extractRawText({ buffer });
-          resumeText = docData.value;
-        } else {
-          return res.status(400).json({ error: "Unsupported file format. Please use PDF or DOCX." });
+        // Validate file security
+        const validation = validateResumeFile(buffer, mimeType, filename, {
+          maxSize: 10 * 1024 * 1024, // 10MB
+          strictValidation: true,
+        });
+
+        if (!validation.valid) {
+          return res.status(400).json({ error: validation.error });
+        }
+
+        // Log any warnings
+        if (validation.warnings && validation.warnings.length > 0) {
+          console.warn('File validation warnings:', validation.warnings);
+        }
+
+        // Extract text from validated file with timeout protection
+        const EXTRACTION_TIMEOUT = 10000; // 10 seconds max
+        
+        try {
+          if (mimeType === "application/pdf") {
+            const extractionPromise = (async () => {
+              const pdfParse = (await import("pdf-parse")).default;
+              const pdfData = await pdfParse(buffer);
+              return pdfData.text;
+            })();
+            
+            resumeText = await Promise.race([
+              extractionPromise,
+              new Promise<never>((_, reject) =>
+                setTimeout(() => reject(new Error('PDF extraction timeout')), EXTRACTION_TIMEOUT)
+              )
+            ]);
+          } else if (
+            mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+            mimeType === "application/msword"
+          ) {
+            // DOCX: Add timeout protection against ZIP bombs
+            const extractionPromise = mammoth.extractRawText({ buffer });
+            
+            const docData = await Promise.race([
+              extractionPromise,
+              new Promise<never>((_, reject) =>
+                setTimeout(() => reject(new Error('DOCX extraction timeout - file may be malicious')), EXTRACTION_TIMEOUT)
+              )
+            ]);
+            
+            resumeText = docData.value;
+          } else {
+            return res.status(400).json({ error: "Unsupported file format. Please use PDF or DOCX." });
+          }
+        } catch (extractionError: any) {
+          if (extractionError.message?.includes('timeout')) {
+            return res.status(400).json({ 
+              error: 'File processing timeout. File may be corrupted or too complex.' 
+            });
+          }
+          throw extractionError; // Re-throw other errors to be handled by outer try-catch
         }
       } else {
         return res.status(400).json({ error: "No resume provided" });
