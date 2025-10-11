@@ -279,7 +279,13 @@ SKILLS
 
   const result = await ai.models.generateContent({
     model: "gemini-2.0-flash-exp",
-    contents: prompt
+    contents: prompt,
+    generationConfig: {
+      maxOutputTokens: 8192, // Allow longer responses for complete resumes
+      temperature: 0.7,
+      topP: 0.95,
+      topK: 40
+    }
   });
   
   const responseText = result.text || "";
