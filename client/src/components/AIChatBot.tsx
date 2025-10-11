@@ -104,11 +104,11 @@ export function AIChatBot() {
 
   return (
     <>
-      {/* Chat Toggle Button */}
+      {/* Chat Toggle Button - Bottom right on mobile and desktop */}
       <Button
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "fixed bottom-6 right-6 z-50 h-14 w-14 rounded-full shadow-lg shadow-primary/25 transition-all",
+          "fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 h-14 w-14 rounded-full shadow-lg shadow-primary/25 transition-all",
           isOpen && "scale-0"
         )}
         size="icon"
@@ -117,23 +117,25 @@ export function AIChatBot() {
         <MessageSquare className="h-6 w-6" />
       </Button>
 
-      {/* Chat Window */}
+      {/* Chat Window - Full screen on mobile, floating card on desktop */}
       <div
         className={cn(
-          "fixed bottom-6 right-6 z-50 transition-all duration-300",
+          "fixed z-50 transition-all duration-300",
+          // Mobile: Full screen with small padding
+          "inset-0 sm:inset-auto sm:bottom-6 sm:right-6",
           isOpen ? "scale-100 opacity-100" : "scale-0 opacity-0 pointer-events-none"
         )}
       >
-        <Card className="w-[380px] h-[600px] flex flex-col shadow-2xl">
+        <Card className="h-full w-full sm:w-[400px] sm:h-[650px] flex flex-col shadow-2xl sm:max-h-[calc(100vh-3rem)]">
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-border bg-gradient-to-r from-primary/10 to-chart-2/10 relative z-10">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/20">
-                <Sparkles className="h-5 w-5 text-primary" />
+          <div className="flex items-center justify-between p-3 sm:p-4 border-b border-border bg-gradient-to-r from-primary/10 to-chart-2/10 relative z-10">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-1.5 sm:p-2 rounded-lg bg-primary/20">
+                <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
               </div>
               <div>
-                <h3 className="font-semibold">Interview Coach</h3>
-                <p className="text-xs text-muted-foreground">Your AI interview partner</p>
+                <h3 className="font-semibold text-sm sm:text-base">Interview Coach</h3>
+                <p className="text-xs text-muted-foreground hidden sm:block">Your AI interview partner</p>
               </div>
             </div>
             <Button
@@ -144,15 +146,15 @@ export function AIChatBot() {
                 setIsOpen(false);
               }}
               data-testid="button-chat-close"
-              className="relative z-20"
+              className="relative z-20 h-8 w-8 sm:h-10 sm:w-10"
             >
-              <X className="h-5 w-5" />
+              <X className="h-4 w-4 sm:h-5 sm:w-5" />
             </Button>
           </div>
 
         {/* Messages */}
-        <ScrollArea className="flex-1 p-4" ref={scrollRef}>
-          <div className="space-y-4">
+        <ScrollArea className="flex-1 p-3 sm:p-4" ref={scrollRef}>
+          <div className="space-y-3 sm:space-y-4">
             {messages.map((message) => (
               <div
                 key={message.id}
@@ -206,24 +208,24 @@ export function AIChatBot() {
         </ScrollArea>
 
         {/* Input */}
-        <div className="p-4 border-t border-border">
+        <div className="p-3 sm:p-4 border-t border-border">
           <div className="flex gap-2">
             <Textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyPress}
               placeholder="Ask me about interview strategies..."
-              className="min-h-[60px] max-h-[120px] resize-none"
+              className="min-h-[50px] sm:min-h-[60px] max-h-[100px] sm:max-h-[120px] resize-none text-sm sm:text-base"
               data-testid="textarea-chat-input"
             />
             <Button
               onClick={handleSend}
               disabled={!input.trim() || isTyping}
               size="icon"
-              className="h-[60px] w-[60px] flex-shrink-0"
+              className="h-[50px] w-[50px] sm:h-[60px] sm:w-[60px] flex-shrink-0"
               data-testid="button-chat-send"
             >
-              <Send className="h-5 w-5" />
+              <Send className="h-4 w-4 sm:h-5 sm:w-5" />
             </Button>
           </div>
         </div>
