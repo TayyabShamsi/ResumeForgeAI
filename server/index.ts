@@ -7,8 +7,9 @@ import { setupCronJobs } from "./cron-jobs";
 
 const app = express();
 
-// Trust proxy for rate limiting (Replit runs behind a proxy)
-app.set('trust proxy', true);
+// Trust only Replit's proxy (1 hop) for security
+// This prevents IP spoofing while allowing rate limiting to work correctly
+app.set('trust proxy', 1);
 
 // Stripe webhook needs raw body for signature verification
 app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }));

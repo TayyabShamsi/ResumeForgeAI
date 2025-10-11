@@ -37,6 +37,8 @@ const apiLimiter = rateLimit({
   message: { error: "Too many requests. Please try again in an hour." },
   standardHeaders: true,
   legacyHeaders: false,
+  // Skip the trust proxy validation since we've properly configured it in index.ts
+  validate: { trustProxy: false },
 });
 
 // Simple in-memory cache with 5-minute TTL
