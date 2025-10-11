@@ -4,12 +4,22 @@ This guide explains how to configure email verification for ResumeForge AI using
 
 ## ⚠️ CRITICAL CONFIGURATION
 
-**You MUST disable Supabase's "Confirm email" setting** to allow users immediate app access:
+**You MUST configure these Supabase settings correctly** for authentication to work:
+
+### Step 1: Enable Email Provider
 1. Go to Supabase Dashboard → Authentication → Providers → Email
+2. **ENABLE "Enable email provider"** toggle (if disabled)
+3. This allows users to sign up and log in with email/password
+
+### Step 2: Disable Email Confirmation
+1. In the same Email provider settings
 2. **DISABLE the "Confirm email" toggle**
 3. This allows instant signup/login while still tracking email verification for AI feature access
 
-If "Confirm email" is enabled, users cannot sign up or log in, breaking the authentication flow.
+**Common Symptoms if Misconfigured:**
+- "Email signups are disabled" → Email provider is disabled (enable it)
+- Signup succeeds but can't log in → "Confirm email" is enabled (disable it)
+- "Invalid email or password" on login → "Confirm email" is enabled (disable it)
 
 ## Why Email Verification?
 

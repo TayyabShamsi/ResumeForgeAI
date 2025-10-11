@@ -237,11 +237,28 @@ export function registerAuthRoutes(app: Express) {
         return res.status(401).json({ error: "Invalid email or password" });
       }
 
-      // Get user data from our database
-      const [user] = await db.select().from(users).where(eq(users.id, authData.user.id)).limit(1);
+      // Get user data from our database, or create if it doesn't exist
+      // (Handles case where Supabase user exists but local record wasn't created due to missing session)
+      let [user] = await db.select().from(users).where(eq(users.id, authData.user.id)).limit(1);
       
       if (!user) {
-        return res.status(404).json({ error: "User profile not found" });
+        // User exists in Supabase but not in our database - create the record
+        console.log("Creating missing user record for Supabase user:", authData.user.id);
+        
+        const nextMonth = new Date();
+        nextMonth.setMonth(nextMonth.getMonth() + 1, 1);
+        nextMonth.setHours(0, 0, 0, 0);
+        
+        [user] = await db.insert(users).values({
+          id: authData.user.id,
+          email: authData.user.email!,
+          name: authData.user.user_metadata?.name || authData.user.email!.split('@')[0],
+          subscriptionTier: 'free',
+          subscriptionStatus: 'active',
+          creditsRemaining: { resume: 5, interview: 2, linkedin: 1, coverLetter: 1 },
+          creditsResetDate: nextMonth,
+          emailVerified: false,
+        }).returning();
       }
 
       // Set Supabase session cookies (both access and refresh tokens)
