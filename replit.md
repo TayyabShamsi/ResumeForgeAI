@@ -40,6 +40,7 @@ Preferred communication style: Simple, everyday language.
 - **Session Management**: Access tokens (1 hour) and refresh tokens (7 days) stored in httpOnly cookies, with an auto-refresh middleware.
 - **Security**: HttpOnly cookies, secure flag in production, token rotation, and proper session cleanup.
 - **Features**: Password reset flow via email, automatic user record creation, credit tracking.
+- **CRITICAL CONFIG**: Supabase "Confirm email" setting MUST be disabled (Supabase Dashboard → Authentication → Providers → Email → DISABLE "Confirm email") to allow instant signup/login. Email verification is tracked separately for AI feature access only.
 
 ## External Dependencies
 

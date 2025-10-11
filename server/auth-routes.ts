@@ -155,6 +155,15 @@ export function registerAuthRoutes(app: Express) {
       nextMonth.setMonth(nextMonth.getMonth() + 1, 1);
       nextMonth.setHours(0, 0, 0, 0);
 
+      // Check if session was created (it won't be if Supabase requires email confirmation)
+      if (!authData.session) {
+        console.error("No session returned from Supabase signup. Email confirmation may be enabled.");
+        console.error("To fix: Go to Supabase Dashboard → Authentication → Providers → Email → DISABLE 'Confirm email'");
+        return res.status(400).json({ 
+          error: "Account created but session not established. Please contact support or check Supabase settings." 
+        });
+      }
+
       // Create user record in our database
       const [newUser] = await db.insert(users).values({
         id: authData.user.id,
@@ -162,29 +171,27 @@ export function registerAuthRoutes(app: Express) {
         name,
         subscriptionTier: 'free',
         subscriptionStatus: 'active',
-        creditsRemaining: { resume: 5, interview: 2, linkedin: 1 },
+        creditsRemaining: { resume: 5, interview: 2, linkedin: 1, coverLetter: 1 },
         creditsResetDate: nextMonth,
         emailVerified: false,
       }).returning();
 
       // Set Supabase session cookies (both access and refresh tokens)
-      if (authData.session) {
-        res.cookie('sb_access_token', authData.session.access_token, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          maxAge: 60 * 60 * 1000, // 1 hour
-          sameSite: 'lax'
-        });
-        res.cookie('sb_refresh_token', authData.session.refresh_token, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-          sameSite: 'lax'
-        });
-      }
+      res.cookie('sb_access_token', authData.session.access_token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 60 * 60 * 1000, // 1 hour
+        sameSite: 'lax'
+      });
+      res.cookie('sb_refresh_token', authData.session.refresh_token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        sameSite: 'lax'
+      });
 
       res.json({
-        token: authData.session?.access_token,
+        token: authData.session.access_token,
         user: {
           id: newUser.id,
           email: newUser.email,
@@ -215,10 +222,18 @@ export function registerAuthRoutes(app: Express) {
       });
 
       if (authError) {
+        console.error("Login error from Supabase:", authError.message);
+        // Check if it's an email confirmation issue
+        if (authError.message.includes('Email not confirmed')) {
+          console.error("Email confirmation is enabled in Supabase. To fix: Supabase Dashboard → Authentication → Providers → Email → DISABLE 'Confirm email'");
+          return res.status(401).json({ 
+            error: "Email verification required. Please check Supabase settings." 
+          });
+        }
         return res.status(401).json({ error: "Invalid email or password" });
       }
 
-      if (!authData.user) {
+      if (!authData.user || !authData.session) {
         return res.status(401).json({ error: "Invalid email or password" });
       }
 
@@ -528,7 +543,7 @@ export function registerAuthRoutes(app: Express) {
           profilePicture: supabaseUser.user_metadata?.avatar_url,
           subscriptionTier: 'free',
           subscriptionStatus: 'active',
-          creditsRemaining: { resume: 5, interview: 2, linkedin: 1 },
+          creditsRemaining: { resume: 5, interview: 2, linkedin: 1, coverLetter: 1 },
           creditsResetDate: nextMonth,
           emailVerified: true,
         });

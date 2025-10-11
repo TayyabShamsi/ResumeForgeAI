@@ -1,6 +1,15 @@
 # Email Verification Setup Guide
 
-This guide explains how to enable email verification for ResumeForge AI using Supabase.
+This guide explains how to configure email verification for ResumeForge AI using Supabase.
+
+## ⚠️ CRITICAL CONFIGURATION
+
+**You MUST disable Supabase's "Confirm email" setting** to allow users immediate app access:
+1. Go to Supabase Dashboard → Authentication → Providers → Email
+2. **DISABLE the "Confirm email" toggle**
+3. This allows instant signup/login while still tracking email verification for AI feature access
+
+If "Confirm email" is enabled, users cannot sign up or log in, breaking the authentication flow.
 
 ## Why Email Verification?
 
@@ -60,13 +69,14 @@ Email verification is a critical security measure that:
      https://<your-replit-app>.replit.app/verify-email
      ```
 
-### Step 3: Enable Email Confirmation
+### Step 3: Configure Email Verification
 
-1. **Enable Email Confirmation**
+1. **Configure Email Provider**
    - Go to "Authentication" → "Providers" → "Email"
    - Ensure "Enable email provider" is checked
-   - **Enable "Confirm email"** toggle
-   - This requires users to verify their email before accessing features
+   - **DISABLE "Confirm email"** toggle
+   - Important: Keep this disabled to allow users immediate app access
+   - Email verification is enforced separately for AI features only
 
 2. **Configure Email Settings**
    - Verification link expiry: 24 hours (default)
@@ -122,6 +132,12 @@ The application is already configured to:
    - Multiple resend attempts
 
 ## Troubleshooting
+
+### Users cannot sign up or log in
+**MOST COMMON ISSUE**: Supabase "Confirm email" is enabled
+1. Symptom: Signup succeeds but user is not logged in, or login fails with "Invalid email or password"
+2. Fix: Go to Supabase Dashboard → Authentication → Providers → Email → **DISABLE "Confirm email"**
+3. Verify: After disabling, try creating a new account - should work immediately
 
 ### Verification emails not sending
 1. Check Supabase email provider is enabled
