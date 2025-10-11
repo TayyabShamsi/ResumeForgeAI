@@ -77,6 +77,28 @@ export async function authenticateSupabase(req: Request, res: Response, next: Ne
     return res.status(401).json({ error: "Invalid or expired session" });
   }
 
+  // Sync email verification status from Supabase to our database
+  if (user.email_confirmed_at) {
+    try {
+      // Check if our database needs to be updated
+      const [dbUser] = await db.select({ emailVerified: users.emailVerified })
+        .from(users)
+        .where(eq(users.id, user.id))
+        .limit(1);
+
+      // If Supabase says verified but our DB says not verified, update our DB
+      if (dbUser && !dbUser.emailVerified) {
+        await db
+          .update(users)
+          .set({ emailVerified: true })
+          .where(eq(users.id, user.id));
+      }
+    } catch (syncError) {
+      console.error("Email verification sync error:", syncError);
+      // Don't block the request if sync fails
+    }
+  }
+
   // Store request-scoped client, token and user for route handlers
   (req as any).supabaseClient = requestClient;
   (req as any).supabaseToken = accessToken;
@@ -431,6 +453,42 @@ export function registerAuthRoutes(app: Express) {
     } catch (error: any) {
       console.error("Google OAuth error:", error);
       res.status(500).json({ error: "OAuth failed" });
+    }
+  });
+
+  // Resend verification email
+  app.post("/api/auth/resend-verification", authenticateSupabase, async (req, res) => {
+    try {
+      const userId = (req as any).user.id;
+      const userEmail = (req as any).user.email;
+
+      // Get user from database to check verification status
+      const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Check if already verified
+      if (user.emailVerified) {
+        return res.status(400).json({ error: "Email already verified" });
+      }
+
+      // Resend verification email via Supabase
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: userEmail,
+      });
+
+      if (error) {
+        console.error("Resend verification error:", error);
+        return res.status(500).json({ error: "Failed to send verification email" });
+      }
+
+      res.json({ message: "Verification email sent. Please check your inbox." });
+    } catch (error: any) {
+      console.error("Resend verification error:", error);
+      res.status(500).json({ error: "Failed to resend verification email" });
     }
   });
 

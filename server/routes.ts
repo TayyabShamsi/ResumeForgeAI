@@ -25,6 +25,7 @@ import { db } from "./db";
 import { subscriptionHistory } from "../shared/schema";
 import { eq, desc } from "drizzle-orm";
 import { validateResumeFile, sanitizeFilename } from "./file-validator";
+import { requireEmailVerification } from "./email-verification-middleware";
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -164,8 +165,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Resume analysis endpoint (with credit check)
-  app.post("/api/analyze-resume", authenticateSupabase, checkResumeCredits, upload.single("resume"), async (req, res) => {
+  // Resume analysis endpoint (with credit check and email verification)
+  app.post("/api/analyze-resume", authenticateSupabase, requireEmailVerification, checkResumeCredits, upload.single("resume"), async (req, res) => {
     try {
       let resumeText = "";
       const { jobDescription, resumeText: pastedText } = req.body;
@@ -288,8 +289,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Resume rewrite endpoint
-  app.post("/api/resume/rewrite", async (req, res) => {
+  // Resume rewrite endpoint (requires auth and email verification)
+  app.post("/api/resume/rewrite", authenticateSupabase, requireEmailVerification, async (req, res) => {
     try {
       const { resumeText, jobDescription, analysisResults } = req.body;
 
@@ -329,8 +330,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Interview questions generation endpoint (with credit check)
-  app.post("/api/generate-questions", authenticateSupabase, checkInterviewCredits, async (req, res) => {
+  // Interview questions generation endpoint (with credit check and email verification)
+  app.post("/api/generate-questions", authenticateSupabase, requireEmailVerification, checkInterviewCredits, async (req, res) => {
     try {
       const { resumeText, jobDescription } = req.body;
 
@@ -353,8 +354,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // LinkedIn optimization endpoint (with credit check)
-  app.post("/api/optimize-linkedin", authenticateSupabase, checkLinkedInCredits, async (req, res) => {
+  // LinkedIn optimization endpoint (with credit check and email verification)
+  app.post("/api/optimize-linkedin", authenticateSupabase, requireEmailVerification, checkLinkedInCredits, async (req, res) => {
     try {
       const { profileUrl, profileContent } = req.body;
 
@@ -418,8 +419,8 @@ Education: ${profile.education?.map((edu: any) =>
     }
   });
 
-  // Cover letter generation endpoint (with credit check)
-  app.post("/api/generate-cover-letter", authenticateSupabase, checkCoverLetterCredits, async (req, res) => {
+  // Cover letter generation endpoint (with credit check and email verification)
+  app.post("/api/generate-cover-letter", authenticateSupabase, requireEmailVerification, checkCoverLetterCredits, async (req, res) => {
     try {
       const { resumeText, jobTitle, companyName, jobDescription, tone } = req.body;
 
@@ -444,8 +445,8 @@ Education: ${profile.education?.map((edu: any) =>
     }
   });
 
-  // AI chat endpoint for interview coaching
-  app.post("/api/chat", async (req, res) => {
+  // AI chat endpoint for interview coaching (requires auth and email verification)
+  app.post("/api/chat", authenticateSupabase, requireEmailVerification, async (req, res) => {
     try {
       const { message, context } = req.body;
 
